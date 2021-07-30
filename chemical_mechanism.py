@@ -227,7 +227,7 @@ class ChemicalMechanism:
         kmol_to_mol = 1e3
         a = np.sum(self.alpha, axis=0) + self.has_m
         conversion = kmol_to_mol ** (1 - a)
-        self.C *= conversion
+        self.C /= conversion
 
         self.epsilon = [np.ones(self.ns, dtype=int) for r in range(self.nr)]
         # Make sure units equal when doing this normalization!

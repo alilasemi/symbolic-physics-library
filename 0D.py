@@ -32,7 +32,7 @@ def main():
     # Convert mass fraction to partial density
     dplr_rho = dplr_Y * dplr_rho_t[:, np.newaxis]
     dplr_source = np.loadtxt('reference_data/kinetics/reactor_n2_tceq.source.dat',
-            skiprows=2)[:, 1:ns+1] * 1e6 # DPLR gives kg/cm^3/s, convert to m
+            skiprows=2)[:, 1:ns+1]# * 1e6 # DPLR gives kg/cm^3/s, convert to m
 
     n_t = 2000
     t_final = nt * 1e-7
@@ -67,23 +67,20 @@ def main():
     #plt.legend(fontsize=14, ncol=ns, loc='lower center')
     plt.savefig(f'0D_T.png', bbox_inches='tight')
 
-    # labels = ['N2', 'N2+', 'N', 'N+', 'e-']
-    # for i in range(chem.ns):
-    #     fig = plt.figure(figsize=(7,7))
-    #     plt.plot(dplr_T, c_wdot[i], lw=3, label=labels[i])
-    #     plt.plot(dplr_T, wdot[i], lw=3, label=labels[i] + ', CT')
-    #     plt.plot(dplr_T, dplr_source[:nt, i], lw=3, label=labels[i] + ', DPLR')
-    #     plt.xlabel('$T$ (K)', fontsize=20)
-    #     #plt.ylabel('$\\frac{\\dot{w} - \\dot{w}_{\\textrm{Cantera}}}{\\dot{w}_{\\textrm{Cantera}}}$', fontsize=20)
-    #     plt.ylabel('$\\dot{w}$ (kg/m$^3$/s)', fontsize=20)
-    #     #plt.ylabel('$\\dot{w}$', fontsize=20)
-    #     plt.tick_params(labelsize=20)
-    #     #plt.ylim([1e-3, 1e15])
-    #     #plt.xlim([7500, 2e4])
-    #     plt.grid(linestyle='--')
-    #     plt.legend(fontsize=14, ncol=ns, loc='lower center')
-    #     #plt.ylim([1e-89, 1e15])
-    #     plt.savefig(f'wdot_{i}.png', bbox_inches='tight')
+    labels = ['N2', 'N2+', 'N', 'N+', 'e-']
+    for i in range(chem.ns):
+        fig = plt.figure(figsize=(7,7))
+        plt.plot(dplr_t, dplr_rho[:, i], lw=3, label=labels[i] + ', DPLR')
+        plt.plot(t, rho[:, i], lw=3, label=labels[i])
+        plt.xlabel('$t$ (s)', fontsize=20)
+        plt.ylabel('$\\rho$ (kg/m$^3$)', fontsize=20)
+        plt.tick_params(labelsize=20)
+        #plt.ylim([1e-3, 1e15])
+        #plt.xlim([7500, 2e4])
+        plt.grid(linestyle='--')
+        plt.legend(fontsize=14, loc='lower center')
+        #plt.ylim([1e-89, 1e15])
+        plt.savefig(f'0D_sp{i}.png', bbox_inches='tight')
 
     plt.show()
 
@@ -112,7 +109,6 @@ def get_T_from_e(e_in, Y, T_guess=300.):
         e, cv = get_e_from_T(T, Y)
         delta = (e_in - e) / cv
         T += delta
-        print(T)
         # Check for convergence
         if delta < T * reltol:
             success = True
