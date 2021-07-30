@@ -14,6 +14,7 @@ def main():
     ns = chem.ns
     nr = chem.nr
     M = chem.M
+    breakpoint()
 
     # Read data from DPLR
     dplr_state = np.loadtxt('reference_data/kinetics/reactor_n2_tceq.state.dat',

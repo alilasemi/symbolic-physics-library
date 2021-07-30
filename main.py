@@ -6,6 +6,7 @@ import sympy as sp
 from sympy.codegen.ast import Assignment
 import cantera as ct
 import ctypes
+import os
 
 from chemical_mechanism import (ChemicalMechanism, MassProductionRate,
         ForwardRate, BackwardRate, ArrheniusRateConstant, BackwardRateConstant,
@@ -23,11 +24,18 @@ def main():
     regenerate_physics = False
     # Code output file
     wdot_code_file_name = 'rxn_rates.c'
-    energy_code_file_name = 'energy.c'
+    e_and_cv_code_file_name = 'e_and_cv.c'
+    e_s_code_file_name = 'e_s.c'
 
     chem = ChemicalMechanism(thermo_file_name)
     ns = chem.ns
     nr = chem.nr
+
+    # If the physics file doens't exist, then it has to be regenerated
+    if not os.path.isfile(physics_file_name):
+        print(f'Physics file "{physics_file_name}" not found, regenerating '
+                'physics...')
+        regenerate_physics = True
 
     if regenerate_physics:
         sizes = {syms.ns : ns, syms.nr : nr}
@@ -83,21 +91,27 @@ def main():
         wdot_eq = [Assignment(syms.wdot[i], wdot[i].expression) for i in range(ns)]
         e_eq = Assignment(syms.e, e.expression)
         cv_eq = Assignment(syms.cv, cv.expression)
+        e_s_eq = [Assignment(syms.e_s[i], e_s[i].expression) for i in range(ns)]
 
         # Save to file
         with open(physics_file_name, "wb") as physics_file:
-            eqs_to_write = (wdot_eq, e_eq, cv_eq)
+            eqs_to_write = (wdot_eq, e_eq, cv_eq, e_s_eq)
             pickle.dump(eqs_to_write, physics_file,
                     protocol=pickle.HIGHEST_PROTOCOL)
     else:
         with open(physics_file_name, "rb") as physics_file:
-            wdot_eq, e_eq, cv_eq = pickle.load(physics_file)
+            wdot_eq, e_eq, cv_eq, e_s_eq = pickle.load(physics_file)
 
     # Generate C code
     src = SourceCode(wdot_code_file_name, 'wdot', wdot_eq)
-    src = SourceCode(energy_code_file_name, 'energy', [e_eq, cv_eq],
+    src = SourceCode(e_and_cv_code_file_name, 'e_and_cv', [e_eq, cv_eq],
             pointer=True)
-    print("Code generated - remember to compile.")
+    src = SourceCode(e_s_code_file_name, 'e_s', e_s_eq)
+
+    print('Code generated - remember to compile.')
+    print('Recommended commands:')
+    print('gcc -fPIC -shared energy.h e_and_cv.c e_s.c -o energy.so')
+    print('gcc -fPIC -shared rates.h rxn_rates.c -o rxn_rates.so')
 
 
 if __name__ == "__main__":

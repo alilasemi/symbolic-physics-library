@@ -46,7 +46,7 @@ H_RT = IndexedBase('H_RT')
 S_R  = IndexedBase('S_R')
 G_RT = IndexedBase('G_RT')
 # Species energy and total mixture energy and specific heat
-e_s = IndexedBase('e_s')
+e_s = IndexedBase('e_s', shape=(ns,))
 e = symbols('e')
 cp_R = IndexedBase('cp_R')
 cv_R = IndexedBase('cv_R')
