@@ -5,11 +5,14 @@ import pickle
 import cantera as ct
 import ctypes
 import scipy
+import h5py
+import os
 
 from chemical_mechanism import ChemicalMechanism
 
 def main():
 
+    dglegion_solution_dir = '/home/ali/projects/cfd_cases/0d_nitrogen/solutions/'
     thermo_file_name = 'N2_ions.dat'
     chem = ChemicalMechanism(thermo_file_name)
     ns = chem.ns
@@ -32,7 +35,7 @@ def main():
     # Convert mass fraction to partial density
     dplr_rho = dplr_Y * dplr_rho_t[:, np.newaxis]
     dplr_source = np.loadtxt('reference_data/kinetics/reactor_n2_tceq.source.dat',
-            skiprows=2)[:, 1:ns+1]# * 1e6 # DPLR gives kg/cm^3/s, convert to m
+            skiprows=2)[:, 1:ns+1] * 1e6 # DPLR gives kg/cm^3/s, convert to m
 
     n_t = 2000
     t_final = nt * 1e-7
@@ -52,26 +55,56 @@ def main():
         T[i] = get_T_from_e(e_in, Y[i], T_guess)
         T_guess = T[i]
 
+    # -- Read data from DG-Legion code -- #
+    # Get list of all files in solution directory
+    _, _, filenames = next(os.walk(dglegion_solution_dir))
+    # Keep only the HDF5 files
+    filenames = [name for name in filenames if name.endswith('.h5')]
+    # Prepend the directory path
+    filenames = [dglegion_solution_dir + name for name in filenames]
+    # Iteration number of each file
+    iters = [name.split('_000.h5')[0].split('_')[-1] for name in filenames]
+    # Sort filenames by iteration number
+    filenames = [name for _, name in sorted(zip(iters, filenames))]
+    # Loop over each solution file
+    dgl_t = np.empty(len(filenames))
+    dgl_T = np.empty_like(dgl_t)
+    dgl_Y = np.empty((dgl_t.size, ns))
+    for i, filename in enumerate(filenames):
+        # Open file
+        h5file = h5py.File(filename, 'r')
+        # Read time
+        dgl_t[i] = h5file['Time'][()][0]
+        # Read temperature
+        dgl_T[i] = h5file['T'][()][0, 0]
+        # Read mass fractions
+        for s in range(ns):
+            dgl_Y[i, s] = h5file[f'Y{s}'][()][0, 0]
+
+    breakpoint()
     # Plot
     rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
     rc('text', usetex=True)
 
     # Plot T
     fig = plt.figure(figsize=(7,7))
-    plt.plot(t, T, lw=3, label='Generated')
     plt.plot(dplr_t, dplr_T, lw=3, label='DPLR')
+    plt.plot(t, T, lw=3, label='Python')
+    plt.plot(dgl_t, dgl_T, lw=3, label='DG-Legion')
     plt.xlabel('$t$ (s)', fontsize=20)
     plt.ylabel('$T$ (K)', fontsize=20)
     plt.tick_params(labelsize=20)
     plt.grid(linestyle='--')
-    #plt.legend(fontsize=14, ncol=ns, loc='lower center')
+    plt.legend(fontsize=14, ncol=1, loc='upper right')
     plt.savefig(f'0D_T.png', bbox_inches='tight')
 
+    # Plot Y
     labels = ['N2', 'N2+', 'N', 'N+', 'e-']
     for i in range(chem.ns):
         fig = plt.figure(figsize=(7,7))
-        plt.plot(dplr_t, dplr_rho[:, i], lw=3, label=labels[i] + ', DPLR')
-        plt.plot(t, rho[:, i], lw=3, label=labels[i])
+        plt.plot(dplr_t, dplr_Y[:, i], lw=3, label=labels[i] + ', DPLR')
+        plt.plot(t, Y[:, i], lw=3, label=labels[i] + ', Python')
+        plt.plot(dgl_t, dgl_Y[:, i], lw=4, label=labels[i] + ', DG-Legion')
         plt.xlabel('$t$ (s)', fontsize=20)
         plt.ylabel('$\\rho$ (kg/m$^3$)', fontsize=20)
         plt.tick_params(labelsize=20)
@@ -92,7 +125,7 @@ def RHS(t, rho, e_in, T_guess):
     # Get temperature
     T = get_T_from_e(e_in, Y, T_guess)
     # Get mass production rate
-    wdot = get_wdot(T, rho) * 1e-6
+    wdot = get_wdot(T, rho)
     return wdot, T
 
 def get_T_from_e(e_in, Y, T_guess=300.):
@@ -126,15 +159,15 @@ def get_T_from_e(e_in, Y, T_guess=300.):
 def get_e_from_T(T, Y):
     # Load C library
     c_lib = ctypes.CDLL('./energy.so')
-    get_e_cv = c_lib.get_e_cv
+    get_e_and_cv = c_lib.get_e_and_cv
     # Set types
-    get_e_cv.argtypes = [ctypes.c_double, ctypes.c_void_p,
+    get_e_and_cv.argtypes = [ctypes.c_double, ctypes.c_void_p,
             ctypes.c_void_p, ctypes.c_void_p]
-    get_e_cv.restype = None
+    get_e_and_cv.restype = None
 
     e = np.empty(1)
     cv = np.empty(1)
-    get_e_cv(
+    get_e_and_cv(
             T,
             Y.ctypes.data,
             e.ctypes.data,
@@ -149,17 +182,13 @@ def get_wdot(T, rho):
     eval_spec_rates = c_lib.eval_spec_rates
     # Set types
     eval_spec_rates.argtypes = [ctypes.c_double, ctypes.c_void_p,
-            ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
+            ctypes.c_void_p]
     eval_spec_rates.restype = None
 
     wdot = np.empty(rho.size)
-    Rf = np.empty(3) # Not used?
-    Rb = np.empty(3) # Not used?
     c_lib.eval_spec_rates(
             T,
             rho.ctypes.data,
-            Rf.ctypes.data,
-            Rb.ctypes.data,
             wdot.ctypes.data)
     return wdot
 
