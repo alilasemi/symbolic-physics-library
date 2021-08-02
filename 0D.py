@@ -77,11 +77,12 @@ def main():
         dgl_t[i] = h5file['Time'][()][0]
         # Read temperature
         dgl_T[i] = h5file['T'][()][0, 0]
-        # Read mass fractions
-        for s in range(ns):
+        # Read mass fractions of conserved variables
+        for s in range(ns - 1):
             dgl_Y[i, s] = h5file[f'Y{s}'][()][0, 0]
+        # Compute mass fraction of final variable
+        dgl_Y[i, -1] = 1 - np.sum(dgl_Y[i, :-1])
 
-    breakpoint()
     # Plot
     rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
     rc('text', usetex=True)
@@ -106,7 +107,7 @@ def main():
         plt.plot(t, Y[:, i], lw=3, label=labels[i] + ', Python')
         plt.plot(dgl_t, dgl_Y[:, i], lw=4, label=labels[i] + ', DG-Legion')
         plt.xlabel('$t$ (s)', fontsize=20)
-        plt.ylabel('$\\rho$ (kg/m$^3$)', fontsize=20)
+        plt.ylabel('$Y$', fontsize=20)
         plt.tick_params(labelsize=20)
         #plt.ylim([1e-3, 1e15])
         #plt.xlim([7500, 2e4])
