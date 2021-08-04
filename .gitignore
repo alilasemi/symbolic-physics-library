@@ -1,0 +1,4 @@
+# Ignore vim files
+*.swp
+# Ignore downloaded data
+/physics/thermodynamics/data/*

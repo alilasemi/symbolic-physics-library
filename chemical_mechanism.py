@@ -326,4 +326,5 @@ def load_thermo_data(thermo_file_name, species):
                         break
         # Create NASA9 object and store
         thermo_data.append(NASA9(text))
+    breakpoint()
     return thermo_data

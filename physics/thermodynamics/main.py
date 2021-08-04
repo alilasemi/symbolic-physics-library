@@ -4,21 +4,23 @@ from matplotlib import rc
 import pickle
 import sympy as sp
 from sympy.codegen.ast import Assignment
-import cantera as ct
 import ctypes
 import os
+from thermodynamic_data import ThermodynamicData
 
-from chemical_mechanism import (ChemicalMechanism, MassProductionRate,
-        ForwardRate, BackwardRate, ArrheniusRateConstant, BackwardRateConstant,
-        EquilibriumConstant, GibbsEnergyFit, EnthalpyFit, EntropyFit, ThreeBodyRateConstant,
-        SpeciesEnergy, MixtureEnergy, SpecificHeatFit, MixtureSpecificHeat)
-from source_code import SourceCode
 import symbols as syms
 
 def main():
 
+    # Thermodynamics model
+    model = 'NASA9'
+
+    # Read in thermodynamic data
+    data = ThermodynamicData(model)
+    breakpoint()
+
     # Thermo data file
-    thermo_file_name = 'nasa9.dat'
+    thermo_file_name = 'N2_ions.dat'
     # Physics file
     physics_file_name = 'physics.pkl'
     regenerate_physics = False
