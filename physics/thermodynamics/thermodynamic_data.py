@@ -14,8 +14,6 @@ nasa7_file_name = 'data/nasa7.dat'
 
 class ThermodynamicData:
 
-    R = 8.31446261815324 # Universal gas constant in SI units
-
     def __init__(self, model):
         self.model = model
         # Set files according to the model chosen
@@ -32,6 +30,9 @@ class ThermodynamicData:
         # Read in the data file
         self.read_data()
 
+    def __getitem__(self, key):
+        return self.data[key]
+
     def get_data(self):
         # If the data file doesn't exist yet
         if not os.path.isfile(self.file_name):
@@ -40,7 +41,7 @@ class ThermodynamicData:
 
     def read_data(self):
         '''Load thermo file into NASA9 objects'''
-        data = {}
+        self.data = {}
         # Open the thermo file
         with open(self.file_name, 'r') as thermo_file:
             # Keep reading, until it hits the word "thermo" (case
@@ -63,7 +64,7 @@ class ThermodynamicData:
                 # Get species name from the first line
                 species = text[0].split()[0]
                 # Create NASA9 object and store
-                data[species] = NASA9(text)
+                self.data[species] = NASA9(text)
 
 
 class NASA9:
