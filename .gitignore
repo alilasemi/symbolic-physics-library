@@ -1,4 +1,6 @@
 # Ignore vim files
 *.swp
+# Ignore pycache
+__pycache__
 # Ignore downloaded data
 /physics/thermodynamics/data/*

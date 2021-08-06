@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import sys
 import urllib.request
 
 
@@ -9,10 +10,11 @@ nasa9_url = 'https://shepherd.caltech.edu/EDL/PublicResources/sdt/SDToolbox/cti/
 nasa7_url = 'https://shepherd.caltech.edu/EDL/PublicResources/sdt/SDToolbox/cti/NASA7/nasa7.dat'
 
 # Location to download data files
-nasa9_file_name = 'data/nasa9.dat'
-nasa7_file_name = 'data/nasa7.dat'
+root_dir = sys.path[0]
+nasa9_file_name = root_dir + '/physics/thermodynamics/data/nasa9.dat'
+nasa7_file_name = root_dir + '/physics/thermodynamics/data/nasa7.dat'
 
-class ThermodynamicData:
+class ThermochemicalData:
 
     def __init__(self, model):
         self.model = model
@@ -37,7 +39,6 @@ class ThermodynamicData:
         # If the data file doesn't exist yet
         if not os.path.isfile(self.file_name):
             urllib.request.urlretrieve(self.data_url, self.file_name)
-            breakpoint()
 
     def read_data(self):
         '''Load thermo file into NASA9 objects'''

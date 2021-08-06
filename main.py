@@ -1,17 +1,10 @@
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib import rc
 import pickle
 import sympy as sp
 from sympy.codegen.ast import Assignment
-import cantera as ct
 import ctypes
 import os
 
-from chemical_mechanism import (ChemicalMechanism, MassProductionRate,
-        ForwardRate, BackwardRate, ArrheniusRateConstant, BackwardRateConstant,
-        EquilibriumConstant, GibbsEnergyFit, EnthalpyFit, EntropyFit, ThreeBodyRateConstant,
-        SpeciesEnergy, MixtureEnergy, SpecificHeatFit, MixtureSpecificHeat)
 from source_code import SourceCode
 import symbols as syms
 

@@ -9,10 +9,14 @@ ns = symbols('ns')
 
 # Temperature
 T = symbols('T', real=True, positive=True)
+# Total density
+rho_t = symbols('rho_t')
 # Partial densities
 rho = IndexedBase('rho', shape=(ns,))
 # Mole fractions
 X = IndexedBase('X', shape=(ns,))
+# Mass fractions
+Y = IndexedBase('Y', shape=(ns,))
 
 # Pressure
 p = symbols('p')
