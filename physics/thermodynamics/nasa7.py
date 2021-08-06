@@ -1,4 +1,4 @@
-from sympy import diff, simplify
+from sympy import log, diff, simplify
 from symbols import *
 
 
