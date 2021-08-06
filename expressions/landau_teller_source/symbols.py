@@ -26,6 +26,8 @@ M = IndexedBase('M')
 m = IndexedBase('m')
 # Mixture averaged molar mass
 M_bar = symbols('M_bar')
+# Mixture averaged species mass
+m_bar = IndexedBase('m_bar')
 
 # Boltzmann constant
 k = symbols('k')

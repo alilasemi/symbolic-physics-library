@@ -2,6 +2,7 @@ import numpy as np
 import os
 import sys
 import urllib.request
+import physics.constants as constants
 
 
 # Professor Joseph Shephard at Caltech provides the NASA Glenn thermodynamic
@@ -94,7 +95,7 @@ class NASA9:
         # The first line contains the species name
         self.species_name = self.text[0].split()[0]
         # The second line contains the number of temperature ranges, the
-        # molecular weight, and the heat of formation
+        # molar mass, and the heat of formation
         self.n_ranges = int(self.text[1].split()[0])
         self.M        = float(self.text[1].split()[-2]) / 1000. # Convert to kg
         self.dHf      = float(self.text[1].split()[-1])
@@ -119,3 +120,5 @@ class NASA9:
                 self.a[i, 5 + num] = line[num*16 : (num + 1)*16]
             for num in range(2):
                 self.a[i, 7 + num] = line[(num + 3)*16 : (num + 4)*16]
+        # Species mass
+        self.m = self.M / constants.N_A
