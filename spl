@@ -9,7 +9,7 @@ from sympy.codegen.ast import Assignment
 import ctypes
 import os
 
-import expressions.landau_teller_source.main as expression
+import expressions.species_energy.main as expression
 
 def main():
 

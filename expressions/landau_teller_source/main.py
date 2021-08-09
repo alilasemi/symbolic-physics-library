@@ -1,4 +1,4 @@
-import math
+import copy
 import numpy as np
 import pickle
 import sympy as sp
@@ -54,12 +54,12 @@ def create():
     # Plug in constants
     tau_s.plug_in(syms.N_A, constants.N_A)
     tau_s.plug_in(syms.k, constants.k)
-    tau_s.plug_in(syms.pi, math.pi)
+    tau_s.plug_in(syms.pi, np.pi)
 
     # -- Plug in species-specific quantities -- #
 
     # Start with the expression created so far
-    tau_s = {s : {r : tau_s for r in range(nh)} for s in range(nv)}
+    tau_s = {s : {r : copy.deepcopy(tau_s) for r in range(nh)} for s in range(nv)}
     # Loop over vibrating species
     for s in range(nv):
         # Loop over heavy particles

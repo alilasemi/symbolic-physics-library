@@ -28,6 +28,11 @@ class Expression:
             for i, expr in expression.items():
                 self.expression = self.expression.subs(symbol[i], expr)
 
+        # For other expressions, plug in the expression
+        if isinstance(expression, Expression):
+            self.expression = self.expression.subs(symbol,
+                    expression.expression)
+
         # Else, just assume it's a scalar (for now)
         else:
             self.expression = self.expression.subs(symbol, expression)

@@ -33,3 +33,12 @@ e = symbols('e')
 cv_R = IndexedBase('cv_R')
 # Mass-specific heat at constant volume for mixture
 cv = symbols('cv')
+
+# Species fully excited TR mass-specific heat
+cv_tr = IndexedBase('cv_tr')
+# Species fully excited TR energy per mass
+e_s_tr = IndexedBase('e_s_tr')
+# Species fully excited VEE energy per mass
+e_s_vee = IndexedBase('e_s_vee')
+# Number of translational-rotational degrees of freedom
+ndof = symbols('ndof')
