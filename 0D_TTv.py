@@ -41,15 +41,18 @@ def main():
 
     # Generated expressions
     with open(physics_file_name, "rb") as physics_file:
-        e, e_tr, e_vee, *_ = pickle.load(physics_file)
+        e, e_tr, e_vee, cv, cv_tr, cv_vee, *_ = pickle.load(physics_file)
 
+    i_start = 25
     n_t = 2000
     t_final = nt * 1e-7
-    rho_0 = dplr_rho[0]
-    T_0 = dplr_T[0]
+    rho_0 = dplr_rho[i_start]
+    T_0 = dplr_T[i_start]
     Tv_0 = T_0
-    e_in, _ = get_e_from_T(T_0, dplr_Y[0])
-    t, rho = RK4(RHS, n_t, t_final, rho_0, T_0, args=(e_in,))
+    e_vee_in = get_e_vee_from_Tv(Tv_0, dplr_Y[i_start])
+    e_tr_in = get_e_tr_from_T(T_0, dplr_Y[i_start])
+    e_in = e_vee_in + e_tr_in
+    t, rho = RK4(RHS, n_t, t_final, rho_0, Tv_0, args=(e_in, e_vee_in,))
 
     # Get total density
     rho_t = np.sum(rho, axis=1, keepdims=True)
@@ -57,38 +60,12 @@ def main():
     Y = rho/rho_t
     # Get temperature
     T = np.empty_like(t)
-    T_guess = T_0
+    Tv = np.empty_like(t)
+    Tv_guess = Tv_0
     for i in range(t.size):
-        T[i] = get_T_from_e(e_in, Y[i], T_guess)
-        T_guess = T[i]
-
-    # -- Read data from DG-Legion code -- #
-    # Get list of all files in solution directory
-    _, _, filenames = next(os.walk(dglegion_solution_dir))
-    # Keep only the HDF5 files
-    filenames = [name for name in filenames if name.endswith('.h5')]
-    # Prepend the directory path
-    filenames = [dglegion_solution_dir + name for name in filenames]
-    # Iteration number of each file
-    iters = [name.split('_000.h5')[0].split('_')[-1] for name in filenames]
-    # Sort filenames by iteration number
-    filenames = [name for _, name in sorted(zip(iters, filenames))]
-    # Loop over each solution file
-    dgl_t = np.empty(len(filenames))
-    dgl_T = np.empty_like(dgl_t)
-    dgl_Y = np.empty((dgl_t.size, ns))
-    for i, filename in enumerate(filenames):
-        # Open file
-        h5file = h5py.File(filename, 'r')
-        # Read time
-        dgl_t[i] = h5file['Time'][()][0]
-        # Read temperature
-        dgl_T[i] = h5file['T'][()][0, 0]
-        # Read mass fractions of conserved variables
-        for s in range(ns - 1):
-            dgl_Y[i, s] = h5file[f'Y{s}'][()][0, 0]
-        # Compute mass fraction of final variable
-        dgl_Y[i, -1] = 1 - np.sum(dgl_Y[i, :-1])
+        Tv[i] = get_Tv_from_e_vee(e_vee_in, Y[i], Tv_guess)
+        Tv_guess = Tv[i]
+        T[i] = get_T_from_e_tr(e_tr_in, Y[i])
 
     # Plot
     rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
@@ -96,91 +73,147 @@ def main():
 
     # Plot T
     fig = plt.figure(figsize=(7,7))
-    plt.plot(dplr_t, dplr_T, lw=3, label='DPLR')
-    plt.plot(t, T, lw=3, label='Python')
-    plt.plot(dgl_t, dgl_T, lw=3, label='DG-Legion')
+    #plt.plot(dplr_t, dplr_T, lw=3, label='DPLR')
+    plt.plot(t, T, 'r', lw=3, label='T')
+    plt.plot(t, Tv, 'b', lw=3, label='Tv')
     plt.xlabel('$t$ (s)', fontsize=20)
-    plt.ylabel('$T$ (K)', fontsize=20)
+    plt.ylabel('$T$, $T_v$ (K)', fontsize=20)
     plt.tick_params(labelsize=20)
     plt.grid(linestyle='--')
     plt.legend(fontsize=14, ncol=1, loc='upper right')
-    plt.savefig(f'0D_T.png', bbox_inches='tight')
+    plt.savefig(f'0D_TTv.png', bbox_inches='tight')
 
     # Plot Y
     labels = ['N2', 'N2+', 'N', 'N+', 'e-']
-    for i in range(chem.ns):
+    for i in range(ns):
         fig = plt.figure(figsize=(7,7))
-        plt.plot(dplr_t, dplr_Y[:, i], lw=3, label=labels[i] + ', DPLR')
+        #plt.plot(dplr_t, dplr_Y[:, i], lw=3, label=labels[i] + ', DPLR')
         plt.plot(t, Y[:, i], lw=3, label=labels[i] + ', Python')
-        plt.plot(dgl_t, dgl_Y[:, i], lw=4, label=labels[i] + ', DG-Legion')
+        #plt.plot(dgl_t, dgl_Y[:, i], lw=4, label=labels[i] + ', DG-Legion')
         plt.xlabel('$t$ (s)', fontsize=20)
         plt.ylabel('$Y$', fontsize=20)
         plt.tick_params(labelsize=20)
         #plt.ylim([1e-3, 1e15])
         #plt.xlim([7500, 2e4])
         plt.grid(linestyle='--')
-        plt.legend(fontsize=14, loc='lower center')
-        #plt.ylim([1e-89, 1e15])
-        plt.savefig(f'0D_sp{i}.png', bbox_inches='tight')
+        #plt.legend(fontsize=14, loc='lower center')
+        plt.savefig(f'0D_TTv_sp{i}.png', bbox_inches='tight')
 
     plt.show()
 
-def RHS(t, rho, e_in, T_guess):
+def RHS(t, rho, e_in, e_vee_in, Tv_guess):
     # Get total density
     rho_t = np.sum(rho)
     # Get mass fraction
     Y = rho/rho_t
-    # Get temperature
-    T = get_T_from_e(e_in, Y, T_guess)
+    # Get VEE temperature
+    Tv = get_Tv_from_e_vee(e_vee_in, Y, Tv_guess)
     # Get mass production rate
-    wdot = get_wdot(T, rho)
-    return wdot, T
+    wdot = 0#get_wdot(T, rho)
+    return wdot, Tv
 
-def get_T_from_e(e_in, Y, T_guess=300.):
+def get_Tv_from_e_vee(e_vee_in, Y, Tv_guess=300.):
     '''Use Newton iterations to invert the energy fit.'''
 
     # Solver settings
     max_iter = 300
     reltol = 1e-8
-    T = T_guess # Initial guess
+    Tv = Tv_guess # Initial guess
 
     # Newton iterations
     success = False
     for i in range(max_iter):
-        e, cv = get_e_from_T(T, Y)
-        delta = (e_in - e) / cv
-        T += delta
+        e_vee = get_e_vee_from_Tv(Tv, Y)
+        cv_vee = get_cv_vee_from_Tv(Tv, Y)
+        delta = (e_vee_in - e_vee) / cv_vee
+        Tv += delta
         # Check for convergence
-        if delta < T * reltol:
+        if delta < Tv * reltol:
             success = True
             break
     # Error messages in case of failure
     if not success:
         print("Convergence failure in the Newton solve for temperature.")
-        print("T      = ", T)
+        print("Tv     = ", Tv)
         print("delta  = ", delta)
-        print("e_in   = ", e_in)
-        print("e      = ", e)
-        print("relerr = ", delta/T)
-    return T
+        print("e_in   = ", e_vee_in)
+        print("e      = ", e_vee)
+        print("relerr = ", delta/Tv)
+    return Tv
 
-def get_e_from_T(T, Y):
+def get_T_from_e_tr(e_tr, Y):
+    '''No Newton iteration needed for T, since TR is assumed fully excited.'''
+    # This is not a function of temperature...just plugged in 0 for now
+    cv_tr = get_cv_tr_from_T(0, Y)
+    return e_tr / cv_tr
+
+def get_e_vee_from_Tv(Tv, Y):
     # Load C library
-    c_lib = ctypes.CDLL('./energy.so')
-    get_e_and_cv = c_lib.get_e_and_cv
+    c_lib = ctypes.CDLL('./generated/e_vee.so')
+    func = c_lib.compute_e_vee
     # Set types
-    get_e_and_cv.argtypes = [ctypes.c_double, ctypes.c_void_p,
-            ctypes.c_void_p, ctypes.c_void_p]
-    get_e_and_cv.restype = None
+    func.argtypes = [ctypes.c_double, ctypes.c_void_p,
+            ctypes.c_void_p]
+    func.restype = None
 
-    e = np.empty(1)
-    cv = np.empty(1)
-    get_e_and_cv(
+    e_vee = np.empty(1)
+    func(
+            Tv,
+            Y.ctypes.data,
+            e_vee.ctypes.data)
+
+    return e_vee[0]
+
+def get_cv_vee_from_Tv(Tv, Y):
+    # Load C library
+    c_lib = ctypes.CDLL('./generated/cv_vee.so')
+    func = c_lib.compute_cv_vee
+    # Set types
+    func.argtypes = [ctypes.c_double, ctypes.c_void_p,
+            ctypes.c_void_p]
+    func.restype = None
+
+    cv_vee = np.empty(1)
+    func(
+            Tv,
+            Y.ctypes.data,
+            cv_vee.ctypes.data)
+
+    return cv_vee[0]
+
+def get_e_tr_from_T(T, Y):
+    # Load C library
+    c_lib = ctypes.CDLL('./generated/e_tr.so')
+    func = c_lib.compute_e_tr
+    # Set types
+    func.argtypes = [ctypes.c_double, ctypes.c_void_p,
+            ctypes.c_void_p]
+    func.restype = None
+
+    e_tr = np.empty(1)
+    func(
             T,
             Y.ctypes.data,
-            e.ctypes.data,
-            cv.ctypes.data)
-    return e[0], cv[0]
+            e_tr.ctypes.data)
+
+    return e_tr[0]
+
+def get_cv_tr_from_T(T, Y):
+    # Load C library
+    c_lib = ctypes.CDLL('./generated/cv_tr.so')
+    func = c_lib.compute_cv_tr
+    # Set types
+    func.argtypes = [ctypes.c_double, ctypes.c_void_p,
+            ctypes.c_void_p]
+    func.restype = None
+
+    cv_tr = np.empty(1)
+    func(
+            T,
+            Y.ctypes.data,
+            cv_tr.ctypes.data)
+
+    return cv_tr[0]
 
 def get_wdot(T, rho):
     '''Compute the mass production rate.'''
