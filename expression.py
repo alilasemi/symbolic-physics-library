@@ -11,8 +11,16 @@ class Expression:
     # Sympy expression
     expression = None
 
-    def __init__(self, expression):
-        self.expression = expression
+    def __init__(self, expression, *args):
+        # If the expression given is actually a function, then use the function
+        # to initialize, with any given arguments
+        if callable(expression):
+            args_exprs = [arg.expression for arg in args]
+            self.expression = expression(*args_exprs)
+        # Otherwise, it is expected that the given expression is a Sympy
+        # expression
+        else:
+            self.expression = expression
 
     def __repr__(self):
         return self.expression.__repr__()
@@ -41,4 +49,8 @@ class Expression:
 
     def doit(self):
         self.expression = self.expression.doit()
+        return self
+
+    def simplify(self):
+        self.expression = self.expression.simplify()
         return self

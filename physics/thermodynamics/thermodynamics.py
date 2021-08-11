@@ -1,22 +1,40 @@
-from sympy import Sum, Piecewise
+from sympy import Sum, Piecewise, diff
 from physics.thermodynamics.symbols import *
 
+def mass_average(expression):
+    return Sum(expression[s] * Y[s], (s, 0, ns-1))
 
+# == Species Quantities == #
+
+# -- Translational-rotational component -- #
+# Species fully excited TR mass-specific heat
+cv_s_tr_expr = (ndof/2) * R / M[s]
+# Species fully excited TR energy per mass
+e_s_tr_expr = cv_s_tr[s] * T
+# -- Vibrational-electronic-electron component -- #
+# Species VEE energy per mass
+e_s_vee_expr = e_s[s] - e_s_tr[s]
+# Species VEE mass-specific heat
+cv_s_vee_expr = cv_s[s] - cv_s_tr[s]
+# -- Combined energy from all components -- #
 # Species energy per mass
 e_s_expr = (H_RT[s] - 1) * R * T / M[s]
+# Species mass-specific heat
+cv_s_func = lambda e_s: diff(e_s, T)
 
-# Species fully excited TR mass-specific heat
-cv_tr_expr = (ndof/2) * R / M[s]
-# Species fully excited TR energy per mass
-e_s_tr_expr = cv_tr[s] * T
-# Species fully excited VEE energy per mass
-e_s_vee_expr = e_s[s] - e_s_tr[s]
+# == Mixture Quantities == #
+# Since these are mass-specific thermodynamic quantities, their mixture average
+# is mass weighted.
 
-# Mixture energy
-e_expr = Sum(e_s[s] * Y[s], (s, 0, ns-1))
-
-# Mixture specific heat
-cv_expr = Sum(cv_R[s] * R * Y[s] / M[s], (s, 0, ns-1))
+# -- Translational-rotational component -- #
+e_tr_expr  = mass_average(e_s_tr)
+cv_tr_expr = mass_average(cv_s_tr)
+# -- Vibrational-electronic-electron component -- #
+e_vee_expr  = mass_average(e_s_vee)
+cv_vee_expr = mass_average(cv_s_vee)
+# -- Combined energy from all components -- #
+e_expr  = mass_average(e_s_vee)
+cv_expr = mass_average(cv_s_vee)
 
 # Function to create piecewise expressions for the NASA fits. expression
 # function of x. The coefficents are a, of size (n_ranges, n_coeffs).

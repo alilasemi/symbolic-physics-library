@@ -9,10 +9,9 @@ from sympy.codegen.ast import Assignment
 import ctypes
 import os
 
-import expressions.species_energy.main as expression
+import expressions.species_energies_and_cv.main as expression
 
 def main():
-
 
     expression.create()
     breakpoint()
