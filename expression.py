@@ -1,3 +1,4 @@
+import numpy as np
 import sympy as sp
 
 # This is a class to be inherited from for any mathematical expression that
@@ -34,12 +35,17 @@ class Expression:
         if isinstance(expression, dict):
             # Loop over dictionary
             for i, expr in expression.items():
-                self.expression = self.expression.subs(symbol[i], expr)
+                self.plug_in(symbol[i], expr)
+
+        # For arrays, plug in indexwise
+        elif isinstance(expression, np.ndarray):
+            # Loop over array
+            for i, expr in enumerate(expression):
+                self.plug_in(symbol[i], expr)
 
         # For other expressions, plug in the expression
-        if isinstance(expression, Expression):
-            self.expression = self.expression.subs(symbol,
-                    expression.expression)
+        elif isinstance(expression, Expression):
+            self.plug_in(symbol, expression.expression)
 
         # Else, just assume it's a scalar (for now)
         else:

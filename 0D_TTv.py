@@ -41,8 +41,7 @@ def main():
 
     # Generated expressions
     with open(physics_file_name, "rb") as physics_file:
-        e_s, e_s_tr, e_s_vee, cv_s, cv_s_tr, cv_s_vee = pickle.load(physics_file)
-    breakpoint()
+        e, e_tr, e_vee, *_ = pickle.load(physics_file)
 
     n_t = 2000
     t_final = nt * 1e-7

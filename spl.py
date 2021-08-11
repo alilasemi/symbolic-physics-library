@@ -18,9 +18,12 @@ def main():
 
     physics_file_name = 'physics.pkl'
     with open(physics_file_name, "rb") as physics_file:
-        e_s, e_s_tr, e_s_vee, cv_s, cv_s_tr, cv_s_vee = pickle.load(physics_file)
+        _, e_tr, e_vee, _, cv_tr, cv_vee, *_ = pickle.load(physics_file)
 
-    src = SourceCode('generated/e_s', 'e_s', 'const double T, double* __restrict__ e_s', e_s)
+    SourceCode('generated/e_tr', 'e_tr', 'const double T, const double* __restrict__ Y, double* __restrict__ e_tr', e_tr, pointer=True)
+    SourceCode('generated/e_vee', 'e_vee', 'const double T, const double* __restrict__ Y, double* __restrict__ e_vee', e_vee, pointer=True)
+    SourceCode('generated/cv_tr', 'cv_tr', 'const double T, const double* __restrict__ Y, double* __restrict__ cv_tr', cv_tr, pointer=True)
+    SourceCode('generated/cv_vee', 'cv_vee', 'const double T, const double* __restrict__ Y, double* __restrict__ cv_vee', cv_vee, pointer=True)
 
     breakpoint()
 

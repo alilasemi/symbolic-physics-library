@@ -27,20 +27,20 @@ G_RT = IndexedBase('G_RT')
 
 # Species fully excited TR mass-specific heat
 # Species fully excited TR energy per mass
-e_s_tr  = IndexedBase('e_s_tr', shape=(ns,))
-cv_s_tr = IndexedBase('cv_s_tr', shape=(ns,))
-e_tr  = IndexedBase('e_tr', shape=(ns,))
-cv_tr = IndexedBase('cv_tr', shape=(ns,))
+e_s_tr  = IndexedBase('e_s_tr')
+cv_s_tr = IndexedBase('cv_s_tr')
+e_tr  = IndexedBase('e_tr')
+cv_tr = IndexedBase('cv_tr')
 # Species fully excited VEE energy per mass
-e_s_vee  = IndexedBase('e_s_vee', shape=(ns,))
-cv_s_vee = IndexedBase('cv_s_vee', shape=(ns,))
-e_vee  = IndexedBase('e_vee', shape=(ns,))
-cv_vee = IndexedBase('cv_vee', shape=(ns,))
+e_s_vee  = IndexedBase('e_s_vee')
+cv_s_vee = IndexedBase('cv_s_vee')
+e_vee  = IndexedBase('e_vee')
+cv_vee = IndexedBase('cv_vee')
 # Combined energy from all components
-e_s  = IndexedBase('e_s', shape=(ns,))
-cv_s = IndexedBase('cv_s', shape=(ns,))
-e  = IndexedBase('e', shape=(ns,))
-cv = IndexedBase('cv', shape=(ns,))
+e_s  = IndexedBase('e_s')
+cv_s = IndexedBase('cv_s')
+e  = IndexedBase('e')
+cv = IndexedBase('cv')
 
 # Number of translational-rotational degrees of freedom
 ndof = symbols('ndof')

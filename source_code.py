@@ -49,9 +49,17 @@ class SourceCode:
                 self.text.pop(i)
                 # Loop over expressions
                 text = []
-                for j in range(len(self.expressions)):
+                # Try iterating over elements
+                try:
+                    for j in range(len(self.expressions)):
+                        # Generate code
+                        code = self.code(self.expressions[j], j)
+                        text.append(self.format(code))
+                # If it doesn't have elements, then just generate the one
+                # expression
+                except TypeError:
                     # Generate code
-                    code = self.code(self.expressions[j], j)
+                    code = self.code(self.expressions)
                     text.append(self.format(code))
                 # Insert text
                 self.text[i:i] = text
@@ -61,8 +69,8 @@ class SourceCode:
         prefix = '*' if self.pointer else ''
         suffix = ';'
         indexing = f'[{idx}]' if idx is not None else ''
-        return (prefix + self.marker + indexing + ' = ' + sp.ccode(expr,
-                contract=False) + suffix)
+        return (prefix + self.marker + indexing + ' = ' +
+                sp.ccode(expr.expression, contract=False) + suffix)
 
     def format(self, text, indent=1):
         white_space = indent * self.tab

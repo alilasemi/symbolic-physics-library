@@ -33,8 +33,8 @@ cv_tr_expr = mass_average(cv_s_tr)
 e_vee_expr  = mass_average(e_s_vee)
 cv_vee_expr = mass_average(cv_s_vee)
 # -- Combined energy from all components -- #
-e_expr  = mass_average(e_s_vee)
-cv_expr = mass_average(cv_s_vee)
+e_expr  = mass_average(e_s)
+cv_expr = mass_average(cv_s)
 
 # Function to create piecewise expressions for the NASA fits. expression
 # function of x. The coefficents are a, of size (n_ranges, n_coeffs).

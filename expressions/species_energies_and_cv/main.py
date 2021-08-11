@@ -47,6 +47,12 @@ def create():
         # e
         e_s_tr[s] = Expression(thermo_exprs.e_s_tr_expr)
         e_s_tr[s].plug_in(thermo_syms.cv_s_tr[syms.s], cv_s_tr[s])
+    e_tr = Expression(thermo_exprs.e_tr_expr)
+    e_tr.plug_in(syms.ns, ns).doit()
+    e_tr.plug_in(thermo_syms.e_s_tr, e_s_tr)
+    cv_tr = Expression(thermo_exprs.cv_tr_expr)
+    cv_tr.plug_in(syms.ns, ns).doit()
+    cv_tr.plug_in(thermo_syms.cv_s_tr, cv_s_tr)
 
     # Start with energy of species s
     # Plug in per-species data
@@ -66,6 +72,12 @@ def create():
         # TODO: This is a mess, make this better
         e_s[s].expression = thermo_exprs.create_piecewise_expression_from_fit(e_s[s], syms.T, syms.a, thermochem_data[sp].a, thermochem_data[sp].temperatures)
         cv_s[s].expression = thermo_exprs.create_piecewise_expression_from_fit(cv_s[s], syms.T, syms.a, thermochem_data[sp].a, thermochem_data[sp].temperatures)
+    e = Expression(thermo_exprs.e_expr)
+    e.plug_in(syms.ns, ns).doit()
+    e.plug_in(thermo_syms.e_s, e_s)
+    cv = Expression(thermo_exprs.cv_expr)
+    cv.plug_in(syms.ns, ns).doit()
+    cv.plug_in(thermo_syms.cv_s, cv_s)
 
     # Plug in to the vibrational energy
     e_s_vee = np.empty(ns, dtype=object)
@@ -77,9 +89,15 @@ def create():
         cv_s_vee[s] = Expression(thermo_exprs.cv_s_vee_expr)
         cv_s_vee[s].plug_in(thermo_syms.cv_s_tr[syms.s], cv_s_tr[s])
         cv_s_vee[s].plug_in(thermo_syms.cv_s[syms.s], cv_s[s])
+    e_vee = Expression(thermo_exprs.e_vee_expr)
+    e_vee.plug_in(syms.ns, ns).doit()
+    e_vee.plug_in(thermo_syms.e_s_vee, e_s_vee)
+    cv_vee = Expression(thermo_exprs.cv_vee_expr)
+    cv_vee.plug_in(syms.ns, ns).doit()
+    cv_vee.plug_in(thermo_syms.cv_s_vee, cv_s_vee)
 
     # Save to file
     with open(physics_file_name, "wb") as physics_file:
-        exprs_to_write = e_s, e_s_tr, e_s_vee, cv_s, cv_s_tr, cv_s_vee
+        exprs_to_write = e, e_tr, e_vee, cv, cv_tr, cv_vee, e_s, e_s_tr, e_s_vee, cv_s, cv_s_tr, cv_s_vee
         pickle.dump(exprs_to_write, physics_file,
                 protocol=pickle.HIGHEST_PROTOCOL)
