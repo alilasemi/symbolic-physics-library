@@ -1,14 +1,7 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib import rc
 import pickle
-import sympy as sp
-from sympy.codegen.ast import Assignment
-import ctypes
-import os
 
 import expressions.species_energies_and_cv.main as expression
-from source_code import SourceCode
+from core.source_code import SourceCode
 
 def main():
 

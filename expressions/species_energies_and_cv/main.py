@@ -15,7 +15,8 @@ def create():
 
     physics_file_name = 'physics.pkl'
 
-    # Collect the necessary data
+    # -- Collect the necessary data -- #
+
     thermochem_data = ThermochemicalData('NASA9')
     # TODO: Un-hardcode
     species = ['N2', 'N2+', 'N', 'N+', 'e-']
@@ -25,11 +26,7 @@ def create():
 
     # -- Plug in -- #
 
-    # Start with translational-rotational energy of species s
-    #e_s_tr = Expression(exprs.e_s_tr_expr)
-    #e_s_tr.plug_in(syms.cv_tr[syms.s], exprs.cv_tr_expr)
-
-    # Plug in per-species data
+    # For the translational-rotational mode
     e_s_tr = np.empty(ns, dtype=object)
     cv_s_tr = np.empty(ns, dtype=object)
     for s, sp in enumerate(species):
@@ -42,6 +39,7 @@ def create():
         # e
         e_s_tr[s] = Expression(exprs.e_s_tr_expr)
         e_s_tr[s].plug_in(syms.cv_s_tr[syms.s], cv_s_tr[s])
+    # Mixture averaged values
     e_tr = Expression(exprs.e_tr_expr)
     e_tr.plug_in(syms.ns, ns).doit()
     e_tr.plug_in(syms.e_s_tr, e_s_tr)
@@ -49,11 +47,9 @@ def create():
     cv_tr.plug_in(syms.ns, ns).doit()
     cv_tr.plug_in(syms.cv_s_tr, cv_s_tr)
 
-    # Start with energy of species s
-    # Plug in per-species data
+    # For the combined energy of all modes
     e_s = np.empty(ns, dtype=object)
     cv_s = np.empty(ns, dtype=object)
-    # Plug in enthalpy fit
     for s, sp in enumerate(species):
         # e
         e_s[s] = Expression(exprs.e_s_expr)
@@ -67,6 +63,7 @@ def create():
         # TODO: This is a mess, make this better
         e_s[s].expression = exprs.create_piecewise_expression_from_fit(e_s[s], syms.T, syms.a, thermochem_data[sp].a, thermochem_data[sp].temperatures)
         cv_s[s].expression = exprs.create_piecewise_expression_from_fit(cv_s[s], syms.T, syms.a, thermochem_data[sp].a, thermochem_data[sp].temperatures)
+    # Mixture averaged values
     e = Expression(exprs.e_expr)
     e.plug_in(syms.ns, ns).doit()
     e.plug_in(syms.e_s, e_s)
@@ -74,7 +71,7 @@ def create():
     cv.plug_in(syms.ns, ns).doit()
     cv.plug_in(syms.cv_s, cv_s)
 
-    # Plug in to the vibrational energy
+    # For the vibrational-electronic-electron mode
     e_s_vee = np.empty(ns, dtype=object)
     cv_s_vee = np.empty(ns, dtype=object)
     for s, sp in enumerate(species):
@@ -84,6 +81,7 @@ def create():
         cv_s_vee[s] = Expression(exprs.cv_s_vee_expr)
         cv_s_vee[s].plug_in(syms.cv_s_tr[syms.s], cv_s_tr[s])
         cv_s_vee[s].plug_in(syms.cv_s[syms.s], cv_s[s])
+    # Mixture averaged values
     e_vee = Expression(exprs.e_vee_expr)
     e_vee.plug_in(syms.ns, ns).doit()
     e_vee.plug_in(syms.e_s_vee, e_s_vee)
