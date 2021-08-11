@@ -81,7 +81,7 @@ def main():
     plt.tick_params(labelsize=20)
     plt.grid(linestyle='--')
     plt.legend(fontsize=14, ncol=1, loc='upper right')
-    plt.savefig(f'0D_TTv.png', bbox_inches='tight')
+    plt.savefig(f'figs/0D_TTv.png', bbox_inches='tight')
 
     # Plot Y
     labels = ['N2', 'N2+', 'N', 'N+', 'e-']
@@ -97,7 +97,7 @@ def main():
         #plt.xlim([7500, 2e4])
         plt.grid(linestyle='--')
         #plt.legend(fontsize=14, loc='lower center')
-        plt.savefig(f'0D_TTv_sp{i}.png', bbox_inches='tight')
+        plt.savefig(f'figs/0D_TTv_sp{i}.png', bbox_inches='tight')
 
     plt.show()
 
