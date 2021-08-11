@@ -1,19 +1,14 @@
 import numpy as np
 import pickle
 import sympy as sp
-import copy
-from sympy.codegen.ast import Assignment
 
 from physics.thermodynamics.thermochemical_data import ThermochemicalData
 
-import expressions.species_energy.expressions as exprs
-import physics.thermodynamics.thermodynamics as thermo_exprs
-import expressions.species_energy.symbols as syms
-import physics.thermodynamics.symbols as thermo_syms
-import physics.thermodynamics.nasa9 as thermo_fit_exprs
-
 from expression import Expression
 import physics.constants as constants
+import physics.thermodynamics.thermodynamics as exprs
+import physics.thermodynamics.symbols as syms
+import physics.thermodynamics.nasa9 as thermo_fit_exprs
 
 
 def create():
@@ -31,28 +26,28 @@ def create():
     # -- Plug in -- #
 
     # Start with translational-rotational energy of species s
-    #e_s_tr = Expression(thermo_exprs.e_s_tr_expr)
-    #e_s_tr.plug_in(thermo_syms.cv_tr[syms.s], thermo_exprs.cv_tr_expr)
+    #e_s_tr = Expression(exprs.e_s_tr_expr)
+    #e_s_tr.plug_in(syms.cv_tr[syms.s], exprs.cv_tr_expr)
 
     # Plug in per-species data
     e_s_tr = np.empty(ns, dtype=object)
     cv_s_tr = np.empty(ns, dtype=object)
     for s, sp in enumerate(species):
         # cv
-        cv_s_tr[s] = Expression(thermo_exprs.cv_s_tr_expr)
+        cv_s_tr[s] = Expression(exprs.cv_s_tr_expr)
         cv_s_tr[s].plug_in(syms.s, s)
-        cv_s_tr[s].plug_in(thermo_syms.ndof, ndofs[sp])
+        cv_s_tr[s].plug_in(syms.ndof, ndofs[sp])
         cv_s_tr[s].plug_in(syms.M[s], thermochem_data[sp].M)
         cv_s_tr[s].plug_in(syms.R, constants.R)
         # e
-        e_s_tr[s] = Expression(thermo_exprs.e_s_tr_expr)
-        e_s_tr[s].plug_in(thermo_syms.cv_s_tr[syms.s], cv_s_tr[s])
-    e_tr = Expression(thermo_exprs.e_tr_expr)
+        e_s_tr[s] = Expression(exprs.e_s_tr_expr)
+        e_s_tr[s].plug_in(syms.cv_s_tr[syms.s], cv_s_tr[s])
+    e_tr = Expression(exprs.e_tr_expr)
     e_tr.plug_in(syms.ns, ns).doit()
-    e_tr.plug_in(thermo_syms.e_s_tr, e_s_tr)
-    cv_tr = Expression(thermo_exprs.cv_tr_expr)
+    e_tr.plug_in(syms.e_s_tr, e_s_tr)
+    cv_tr = Expression(exprs.cv_tr_expr)
     cv_tr.plug_in(syms.ns, ns).doit()
-    cv_tr.plug_in(thermo_syms.cv_s_tr, cv_s_tr)
+    cv_tr.plug_in(syms.cv_s_tr, cv_s_tr)
 
     # Start with energy of species s
     # Plug in per-species data
@@ -61,40 +56,40 @@ def create():
     # Plug in enthalpy fit
     for s, sp in enumerate(species):
         # e
-        e_s[s] = Expression(thermo_exprs.e_s_expr)
+        e_s[s] = Expression(exprs.e_s_expr)
         e_s[s].plug_in(syms.s, s)
         e_s[s].plug_in(syms.H_RT[s], thermo_fit_exprs.H_RT_expr)
         e_s[s].plug_in(syms.M[s], thermochem_data[sp].M)
         e_s[s].plug_in(syms.R, constants.R)
         # cv
-        cv_s[s] = Expression(thermo_exprs.cv_s_func, e_s[s]).simplify()
+        cv_s[s] = Expression(exprs.cv_s_func, e_s[s]).simplify()
         # Make piecewise expressions at the end
         # TODO: This is a mess, make this better
-        e_s[s].expression = thermo_exprs.create_piecewise_expression_from_fit(e_s[s], syms.T, syms.a, thermochem_data[sp].a, thermochem_data[sp].temperatures)
-        cv_s[s].expression = thermo_exprs.create_piecewise_expression_from_fit(cv_s[s], syms.T, syms.a, thermochem_data[sp].a, thermochem_data[sp].temperatures)
-    e = Expression(thermo_exprs.e_expr)
+        e_s[s].expression = exprs.create_piecewise_expression_from_fit(e_s[s], syms.T, syms.a, thermochem_data[sp].a, thermochem_data[sp].temperatures)
+        cv_s[s].expression = exprs.create_piecewise_expression_from_fit(cv_s[s], syms.T, syms.a, thermochem_data[sp].a, thermochem_data[sp].temperatures)
+    e = Expression(exprs.e_expr)
     e.plug_in(syms.ns, ns).doit()
-    e.plug_in(thermo_syms.e_s, e_s)
-    cv = Expression(thermo_exprs.cv_expr)
+    e.plug_in(syms.e_s, e_s)
+    cv = Expression(exprs.cv_expr)
     cv.plug_in(syms.ns, ns).doit()
-    cv.plug_in(thermo_syms.cv_s, cv_s)
+    cv.plug_in(syms.cv_s, cv_s)
 
     # Plug in to the vibrational energy
     e_s_vee = np.empty(ns, dtype=object)
     cv_s_vee = np.empty(ns, dtype=object)
     for s, sp in enumerate(species):
-        e_s_vee[s] = Expression(thermo_exprs.e_s_vee_expr)
-        e_s_vee[s].plug_in(thermo_syms.e_s_tr[syms.s], e_s_tr[s])
-        e_s_vee[s].plug_in(thermo_syms.e_s[syms.s], e_s[s])
-        cv_s_vee[s] = Expression(thermo_exprs.cv_s_vee_expr)
-        cv_s_vee[s].plug_in(thermo_syms.cv_s_tr[syms.s], cv_s_tr[s])
-        cv_s_vee[s].plug_in(thermo_syms.cv_s[syms.s], cv_s[s])
-    e_vee = Expression(thermo_exprs.e_vee_expr)
+        e_s_vee[s] = Expression(exprs.e_s_vee_expr)
+        e_s_vee[s].plug_in(syms.e_s_tr[syms.s], e_s_tr[s])
+        e_s_vee[s].plug_in(syms.e_s[syms.s], e_s[s])
+        cv_s_vee[s] = Expression(exprs.cv_s_vee_expr)
+        cv_s_vee[s].plug_in(syms.cv_s_tr[syms.s], cv_s_tr[s])
+        cv_s_vee[s].plug_in(syms.cv_s[syms.s], cv_s[s])
+    e_vee = Expression(exprs.e_vee_expr)
     e_vee.plug_in(syms.ns, ns).doit()
-    e_vee.plug_in(thermo_syms.e_s_vee, e_s_vee)
-    cv_vee = Expression(thermo_exprs.cv_vee_expr)
+    e_vee.plug_in(syms.e_s_vee, e_s_vee)
+    cv_vee = Expression(exprs.cv_vee_expr)
     cv_vee.plug_in(syms.ns, ns).doit()
-    cv_vee.plug_in(thermo_syms.cv_s_vee, cv_s_vee)
+    cv_vee.plug_in(syms.cv_s_vee, cv_s_vee)
 
     # Save to file
     with open(physics_file_name, "wb") as physics_file:
