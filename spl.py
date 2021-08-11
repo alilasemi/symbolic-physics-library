@@ -10,10 +10,18 @@ import ctypes
 import os
 
 import expressions.species_energies_and_cv.main as expression
+from source_code import SourceCode
 
 def main():
 
     expression.create()
+
+    physics_file_name = 'physics.pkl'
+    with open(physics_file_name, "rb") as physics_file:
+        e_s, e_s_tr, e_s_vee, cv_s, cv_s_tr, cv_s_vee = pickle.load(physics_file)
+
+    src = SourceCode('generated/e_s', 'e_s', 'const double T, double* __restrict__ e_s', e_s)
+
     breakpoint()
 
     # Thermo data file

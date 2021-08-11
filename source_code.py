@@ -7,15 +7,17 @@ class SourceCode:
 
     tab = '    '
 
-    def __init__(self, file_name, marker, equations, pointer=False):
-        self.file_name = file_name
+    def __init__(self, file_name, marker, inputs_line, expressions, pointer=False):
+        self.file_name = file_name + '.c'
         self.marker = marker
-        self.equations = equations
+        self.inputs_line = inputs_line
+        self.expressions = expressions
         self.pointer = pointer
         # Read in base file
-        self.read_base_file()
-        # Generate equations
-        self.generate_equations()
+        #self.read_base_file()
+        self.create_base_file()
+        # Generate expressions
+        self.generate_expressions()
         # Write to file
         self.write()
 
@@ -28,26 +30,39 @@ class SourceCode:
             for line in base_file:
                 self.text.append(line)
 
-    def generate_equations(self):
+    def create_base_file(self):
+        self.text = []
+        self.text.append('#include <math.h>\n')
+        self.text.append('\n')
+        self.text.append(f'void compute_{self.marker}({self.inputs_line}) {{\n')
+        self.text.append('\n')
+        self.text.append(f'#pragma {self.marker}')
+        self.text.append('\n')
+        self.text.append('}')
+
+    def generate_expressions(self):
         # Loop over lines in source code
         for i, line in enumerate(self.text):
             # If this is the marker for wdot
             if line.startswith(f'#pragma {self.marker}'):
                 # Remove marker
                 self.text.pop(i)
-                # Loop over equations
+                # Loop over expressions
                 text = []
-                for j in range(len(self.equations)):
+                for j in range(len(self.expressions)):
                     # Generate code
-                    code = self.code(self.equations[j])
+                    code = self.code(self.expressions[j], j)
                     text.append(self.format(code))
                 # Insert text
                 self.text[i:i] = text
                 break
 
-    def code(self, expr):
+    def code(self, expr, idx=None):
         prefix = '*' if self.pointer else ''
-        return prefix + sp.ccode(expr, contract=False)
+        suffix = ';'
+        indexing = f'[{idx}]' if idx is not None else ''
+        return (prefix + self.marker + indexing + ' = ' + sp.ccode(expr,
+                contract=False) + suffix)
 
     def format(self, text, indent=1):
         white_space = indent * self.tab
