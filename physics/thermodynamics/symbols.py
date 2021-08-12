@@ -41,6 +41,8 @@ e_s  = IndexedBase('e_s')
 cv_s = IndexedBase('cv_s')
 e  = IndexedBase('e')
 cv = IndexedBase('cv')
+# Species mass-specific formation energy
+e_s_0 = IndexedBase('e_s_0')
 
 # Number of translational-rotational degrees of freedom
 ndof = symbols('ndof')

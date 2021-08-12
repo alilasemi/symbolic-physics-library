@@ -13,7 +13,7 @@ cv_s_tr_expr = (ndof/2) * R / M[s]
 e_s_tr_expr = cv_s_tr[s] * T
 # -- Vibrational-electronic-electron component -- #
 # Species VEE energy per mass
-e_s_vee_expr = e_s[s] - e_s_tr[s]
+e_s_vee_expr = e_s[s] - e_s_tr[s] - e_s_0[s]
 # Species VEE mass-specific heat
 cv_s_vee_expr = cv_s[s] - cv_s_tr[s]
 # -- Combined energy from all components -- #
@@ -50,5 +50,5 @@ def create_piecewise_expression_from_fit(expression, x, sym_a, a, temperature_ra
             [(expression.expression.subs([(sym_a[j], a[i, j])
                 # A tuple is created by joining the expression with its
                 # valid temperature range
-                for j in range(n_coeffs)]), x < temperature_ranges[i + 1])
+                for j in range(n_coeffs)]), x > temperature_ranges[i])
                 for i in range(n_ranges)]))

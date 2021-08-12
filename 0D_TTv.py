@@ -39,13 +39,9 @@ def main():
     dplr_source = np.loadtxt('reference_data/kinetics/reactor_n2_tceq.source.dat',
             skiprows=2)[:, 1:ns+1] * 1e6 # DPLR gives kg/cm^3/s, convert to m
 
-    # Generated expressions
-    with open(physics_file_name, "rb") as physics_file:
-        e, e_tr, e_vee, cv, cv_tr, cv_vee, *_ = pickle.load(physics_file)
-
     i_start = 25
     n_t = 2000
-    t_final = nt * 1e-7
+    t_final = nt * 1e-7 * 2e-8
     rho_0 = dplr_rho[i_start]
     T_0 = dplr_T[i_start]
     Tv_0 = T_0
@@ -106,10 +102,12 @@ def RHS(t, rho, e_in, e_vee_in, Tv_guess):
     rho_t = np.sum(rho)
     # Get mass fraction
     Y = rho/rho_t
+    # Get TR temperature
+    T = get_T_from_e_tr(e_in - e_vee_in, Y)
     # Get VEE temperature
     Tv = get_Tv_from_e_vee(e_vee_in, Y, Tv_guess)
     # Get mass production rate
-    wdot = 0#get_wdot(T, rho)
+    wdot = get_wdot(T, Tv, rho)
     return wdot, Tv
 
 def get_Tv_from_e_vee(e_vee_in, Y, Tv_guess=300.):
@@ -215,19 +213,19 @@ def get_cv_tr_from_T(T, Y):
 
     return cv_tr[0]
 
-def get_wdot(T, rho):
+def get_wdot(T, Tv, rho):
     '''Compute the mass production rate.'''
 
     # Load C library
-    c_lib = ctypes.CDLL('./rxn_rates.so')
-    eval_spec_rates = c_lib.eval_spec_rates
+    c_lib = ctypes.CDLL('./generated/wdot.so')
+    func = c_lib.compute_wdot
     # Set types
-    eval_spec_rates.argtypes = [ctypes.c_double, ctypes.c_void_p,
+    func.argtypes = [ctypes.c_double, ctypes.c_void_p,
             ctypes.c_void_p]
-    eval_spec_rates.restype = None
+    func.restype = None
 
     wdot = np.empty(rho.size)
-    c_lib.eval_spec_rates(
+    func(
             T,
             rho.ctypes.data,
             wdot.ctypes.data)
@@ -245,6 +243,7 @@ def RK4(f, n_t, t_final, u_0, guess, args=()):
         # Perform the four stages
         K1, guess = f(t[i], u[i],         *args, guess)
         K1 *= dt
+        breakpoint()
         K2, guess = f(t[i], u[i] + .5*K1, *args, guess)
         K2 *= dt
         K3, guess = f(t[i], u[i] + .5*K2, *args, guess)
@@ -252,7 +251,7 @@ def RK4(f, n_t, t_final, u_0, guess, args=()):
         K4, guess = f(t[i], u[i] + K3,    *args, guess)
         K4 *= dt
 
-        u[i+1] = u[i] + (K1 + 2*K2 + 2*K3 + K4) / 6
+        u[i + 1] = u[i] + (K1 + 2*K2 + 2*K3 + K4) / 6
 
     return t, u
 

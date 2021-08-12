@@ -142,7 +142,6 @@ def create():
             wdot[s].plug_in(syms.beta[syms.s, r], beta[s, r])
         wdot[s].plug_in(syms.Rf, Rf)
         wdot[s].plug_in(syms.Rb, Rb)
-    breakpoint()
 
     # Save to file
     with open(physics_file_name, "wb") as physics_file:

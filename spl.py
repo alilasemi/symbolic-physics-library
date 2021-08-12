@@ -6,9 +6,17 @@ from core.source_code import SourceCode
 
 def main():
 
+    # Chemistry
     chem_expression.create()
+
+    physics_file_name = 'physics.pkl'
+    with open(physics_file_name, "rb") as physics_file:
+        wdot = pickle.load(physics_file)
+
+    SourceCode('generated/wdot', 'wdot', 'const double T, const double* __restrict__ rho, double* __restrict__ wdot', wdot)
     breakpoint()
 
+    # Thermodynamics
     thermo_expression.create()
 
     physics_file_name = 'physics.pkl'
