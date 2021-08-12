@@ -17,6 +17,8 @@ nasa7_file_name = root_dir + '/physics/thermodynamics/data/nasa7.dat'
 
 class ThermochemicalData:
 
+    p_0 = 1e5 # 1 bar, converted to Pa
+
     def __init__(self, model):
         self.model = model
         # Set files according to the model chosen

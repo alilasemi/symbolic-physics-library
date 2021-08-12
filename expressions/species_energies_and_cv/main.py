@@ -4,7 +4,7 @@ import sympy as sp
 
 from physics.thermodynamics.thermochemical_data import ThermochemicalData
 
-from expression import Expression
+from core.expression import Expression
 import physics.constants as constants
 import physics.thermodynamics.thermodynamics as exprs
 import physics.thermodynamics.symbols as syms
