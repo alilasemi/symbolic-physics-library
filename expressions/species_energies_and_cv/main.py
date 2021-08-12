@@ -49,6 +49,7 @@ def create():
 
     # For the combined energy of all modes
     e_s = np.empty(ns, dtype=object)
+    e_s_0 = np.empty(ns)
     cv_s = np.empty(ns, dtype=object)
     for s, sp in enumerate(species):
         # e
@@ -63,7 +64,8 @@ def create():
         # TODO: This is a mess, make this better
         e_s[s].expression = exprs.create_piecewise_expression_from_fit(e_s[s], syms.T, syms.a, thermochem_data[sp].a, thermochem_data[sp].temperatures)
         cv_s[s].expression = exprs.create_piecewise_expression_from_fit(cv_s[s], syms.T, syms.a, thermochem_data[sp].a, thermochem_data[sp].temperatures)
-        breakpoint()
+        # Formation energy
+        e_s_0[s] = e_s[s].expression.subs(syms.T, thermochem_data.T_0)
     # Mixture averaged values
     e = Expression(exprs.e_expr)
     e.plug_in(syms.ns, ns).doit()
@@ -71,6 +73,10 @@ def create():
     cv = Expression(exprs.cv_expr)
     cv.plug_in(syms.ns, ns).doit()
     cv.plug_in(syms.cv_s, cv_s)
+    # TR mode from other modes
+    e_tr_from_e = Expression(exprs.e_tr_from_e_expr)
+    e_tr_from_e.plug_in(syms.ns, ns).doit()
+    e_tr_from_e.plug_in(syms.e_s_0, e_s_0)
 
     # For the vibrational-electronic-electron mode
     e_s_vee = np.empty(ns, dtype=object)
@@ -79,6 +85,7 @@ def create():
         e_s_vee[s] = Expression(exprs.e_s_vee_expr)
         e_s_vee[s].plug_in(syms.e_s_tr[syms.s], e_s_tr[s])
         e_s_vee[s].plug_in(syms.e_s[syms.s], e_s[s])
+        e_s_vee[s].plug_in(syms.e_s_0[syms.s], e_s_0[s])
         cv_s_vee[s] = Expression(exprs.cv_s_vee_expr)
         cv_s_vee[s].plug_in(syms.cv_s_tr[syms.s], cv_s_tr[s])
         cv_s_vee[s].plug_in(syms.cv_s[syms.s], cv_s[s])
@@ -92,6 +99,6 @@ def create():
 
     # Save to file
     with open(physics_file_name, "wb") as physics_file:
-        exprs_to_write = e, e_tr, e_vee, cv, cv_tr, cv_vee, e_s, e_s_tr, e_s_vee, cv_s, cv_s_tr, cv_s_vee
+        exprs_to_write = e, e_tr, e_tr_from_e, e_vee, cv, cv_tr, cv_vee, e_s, e_s_tr, e_s_vee, cv_s, cv_s_tr, cv_s_vee
         pickle.dump(exprs_to_write, physics_file,
                 protocol=pickle.HIGHEST_PROTOCOL)

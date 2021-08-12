@@ -29,6 +29,8 @@ cv_s_func = lambda e_s: diff(e_s, T)
 # -- Translational-rotational component -- #
 e_tr_expr  = mass_average(e_s_tr)
 cv_tr_expr = mass_average(cv_s_tr)
+# From other energies
+e_tr_from_e_expr = e - e_vee - mass_average(e_s_0)
 # -- Vibrational-electronic-electron component -- #
 e_vee_expr  = mass_average(e_s_vee)
 cv_vee_expr = mass_average(cv_s_vee)

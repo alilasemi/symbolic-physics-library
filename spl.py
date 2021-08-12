@@ -14,16 +14,17 @@ def main():
         wdot = pickle.load(physics_file)
 
     SourceCode('generated/wdot', 'wdot', 'const double T, const double* __restrict__ rho, double* __restrict__ wdot', wdot)
-    breakpoint()
 
     # Thermodynamics
     thermo_expression.create()
 
     physics_file_name = 'physics.pkl'
     with open(physics_file_name, "rb") as physics_file:
-        _, e_tr, e_vee, _, cv_tr, cv_vee, *_ = pickle.load(physics_file)
+        e, e_tr, e_tr_from_e, e_vee, _, cv_tr, cv_vee, *_ = pickle.load(physics_file)
 
+    SourceCode('generated/e', 'e', 'const double T, const double* __restrict__ Y, double* __restrict__ e', e, pointer=True)
     SourceCode('generated/e_tr', 'e_tr', 'const double T, const double* __restrict__ Y, double* __restrict__ e_tr', e_tr, pointer=True)
+    SourceCode('generated/e_tr_from_e', 'e_tr_from_e', 'const double e, const double e_vee, const double* __restrict__ Y, double* __restrict__ e_tr_from_e', e_tr_from_e, pointer=True)
     SourceCode('generated/e_vee', 'e_vee', 'const double T, const double* __restrict__ Y, double* __restrict__ e_vee', e_vee, pointer=True)
     SourceCode('generated/cv_tr', 'cv_tr', 'const double T, const double* __restrict__ Y, double* __restrict__ cv_tr', cv_tr, pointer=True)
     SourceCode('generated/cv_vee', 'cv_vee', 'const double T, const double* __restrict__ Y, double* __restrict__ cv_vee', cv_vee, pointer=True)

@@ -26,6 +26,12 @@ class Expression:
     def __repr__(self):
         return self.expression.__repr__()
 
+    # TODO: Error handling...
+    def __float__(self):
+        return float(self.expression)
+    def __int__(self):
+        return int(self.expression)
+
     # TODO: Robust error handling and messages. Right now, it just assumes you
     # pass in either a dict or a scalar expression. It also fails silently,
     # which is bad in this context. Not user friendly.

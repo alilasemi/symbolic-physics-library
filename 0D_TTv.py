@@ -41,13 +41,13 @@ def main():
 
     i_start = 25
     n_t = 2000
-    t_final = nt * 1e-7 * 2e-8
+    t_final = nt * 1e-7 * 2e-6
     rho_0 = dplr_rho[i_start]
     T_0 = dplr_T[i_start]
     Tv_0 = T_0
     e_vee_in = get_e_vee_from_Tv(Tv_0, dplr_Y[i_start])
     e_tr_in = get_e_tr_from_T(T_0, dplr_Y[i_start])
-    e_in = e_vee_in + e_tr_in
+    e_in = get_e_from_T(T_0, dplr_Y[i_start])
     t, rho = RK4(RHS, n_t, t_final, rho_0, Tv_0, args=(e_in, e_vee_in,))
 
     # Get total density
@@ -103,7 +103,8 @@ def RHS(t, rho, e_in, e_vee_in, Tv_guess):
     # Get mass fraction
     Y = rho/rho_t
     # Get TR temperature
-    T = get_T_from_e_tr(e_in - e_vee_in, Y)
+    e_tr = get_e_tr_from_e(e_in, e_vee_in, Y)
+    T = get_T_from_e_tr(e_tr, Y)
     # Get VEE temperature
     Tv = get_Tv_from_e_vee(e_vee_in, Y, Tv_guess)
     # Get mass production rate
@@ -144,6 +145,41 @@ def get_T_from_e_tr(e_tr, Y):
     # This is not a function of temperature...just plugged in 0 for now
     cv_tr = get_cv_tr_from_T(0, Y)
     return e_tr / cv_tr
+
+def get_e_tr_from_e(e, e_vee, Y):
+    # Load C library
+    c_lib = ctypes.CDLL('./generated/e_tr_from_e.so')
+    func = c_lib.compute_e_tr_from_e
+    # Set types
+    func.argtypes = [ctypes.c_double, ctypes.c_double, ctypes.c_void_p,
+            ctypes.c_void_p]
+    func.restype = None
+
+    e_tr = np.empty(1)
+    func(
+            e,
+            e_vee,
+            Y.ctypes.data,
+            e_tr.ctypes.data)
+
+    return e_tr[0]
+
+def get_e_from_T(T, Y):
+    # Load C library
+    c_lib = ctypes.CDLL('./generated/e.so')
+    func = c_lib.compute_e
+    # Set types
+    func.argtypes = [ctypes.c_double, ctypes.c_void_p,
+            ctypes.c_void_p]
+    func.restype = None
+
+    e = np.empty(1)
+    func(
+            T,
+            Y.ctypes.data,
+            e.ctypes.data)
+
+    return e[0]
 
 def get_e_vee_from_Tv(Tv, Y):
     # Load C library
@@ -243,7 +279,6 @@ def RK4(f, n_t, t_final, u_0, guess, args=()):
         # Perform the four stages
         K1, guess = f(t[i], u[i],         *args, guess)
         K1 *= dt
-        breakpoint()
         K2, guess = f(t[i], u[i] + .5*K1, *args, guess)
         K2 *= dt
         K3, guess = f(t[i], u[i] + .5*K2, *args, guess)
