@@ -40,15 +40,17 @@ def main():
             skiprows=2)[:, 1:ns+1] * 1e6 # DPLR gives kg/cm^3/s, convert to m
 
     i_start = 25
-    n_t = 2000
-    t_final = nt * 1e-7 * 2e-6
+    n_t = 200
+    t_final = nt * 1e-7 * 1e-7
     rho_0 = dplr_rho[i_start]
     T_0 = dplr_T[i_start]
-    Tv_0 = T_0
+    Tv_0 = 1000
     e_vee_in = get_e_vee_from_Tv(Tv_0, dplr_Y[i_start])
-    e_tr_in = get_e_tr_from_T(T_0, dplr_Y[i_start])
     e_in = get_e_from_T(T_0, dplr_Y[i_start])
-    t, rho = RK4(RHS, n_t, t_final, rho_0, Tv_0, args=(e_in, e_vee_in,))
+    u_0 = np.append(rho_0, e_vee_in)
+    t, u = RK4(RHS, n_t, t_final, u_0, Tv_0, args=(e_in,))
+    rho = u[:, :-1]
+    e_vee = u[:, -1]
 
     # Get total density
     rho_t = np.sum(rho, axis=1, keepdims=True)
@@ -59,13 +61,36 @@ def main():
     Tv = np.empty_like(t)
     Tv_guess = Tv_0
     for i in range(t.size):
-        Tv[i] = get_Tv_from_e_vee(e_vee_in, Y[i], Tv_guess)
+        Tv[i] = get_Tv_from_e_vee(e_vee[i], Y[i], Tv_guess)
         Tv_guess = Tv[i]
-        T[i] = get_T_from_e_tr(e_tr_in, Y[i])
+        e_tr = get_e_tr_from_e(e_in, e_vee[i], Y[i])
+        T[i] = get_T_from_e_tr(e_tr, Y[i])
 
     # Plot
     rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
     rc('text', usetex=True)
+
+    Q_TV = np.empty((5, 100))
+    T_const = [1e4, 1.5e4, 2e4, 2.5e4, 3e4]
+    for j in range(5):
+        T = T_const[j] * np.ones(100)
+        Tv = T - np.linspace(0, .9 * T_const[j], 100)
+        rho = np.array([.0025, 0, 0, 0, 0])
+        Y = np.array([1., 0, 0, 0, 0])
+        for i in range(100):
+            Q_TV[j, i] = get_Q_TV(T[i], Tv[i], rho, Y)
+    # Plot LT source
+    fig = plt.figure(figsize=(7,7))
+    #plt.plot(dplr_t, dplr_T, lw=3, label='DPLR')
+    for j in range(5):
+        plt.plot(T - Tv, Q_TV[j], lw=3, label=f'T = {int(T_const[j])} K')
+    plt.xlabel('$T - T_v$ (K)', fontsize=20)
+    plt.ylabel('$Q_{T-V}$ (W/M$^3$)', fontsize=20)
+    plt.tick_params(labelsize=20)
+    plt.grid(linestyle='--')
+    plt.legend(fontsize=14, ncol=1)#, loc='upper right')
+    plt.savefig(f'figs/0D_Q_LT.png', bbox_inches='tight')
+    plt.show()
 
     # Plot T
     fig = plt.figure(figsize=(7,7))
@@ -97,19 +122,29 @@ def main():
 
     plt.show()
 
-def RHS(t, rho, e_in, e_vee_in, Tv_guess):
+def RHS(t, u, e_in, Tv_guess):
+    # Unpack state
+    rho = u[:-1]
+    e_vee = u[-1]
     # Get total density
     rho_t = np.sum(rho)
     # Get mass fraction
     Y = rho/rho_t
     # Get TR temperature
-    e_tr = get_e_tr_from_e(e_in, e_vee_in, Y)
+    e_tr = get_e_tr_from_e(e_in, e_vee, Y)
     T = get_T_from_e_tr(e_tr, Y)
     # Get VEE temperature
-    Tv = get_Tv_from_e_vee(e_vee_in, Y, Tv_guess)
+    print(e_vee, Tv_guess)
+    Tv = get_Tv_from_e_vee(e_vee, Y, Tv_guess)
+    # Get species VEE energies
+    e_s_vee = get_e_s_vee(Tv, len(rho))
     # Get mass production rate
-    wdot = get_wdot(T, Tv, rho)
-    return wdot, Tv
+    wdot = get_wdot(Tv, Tv, rho)
+    # Get VEE source term
+    Q_TV = get_Q_TV(T, Tv, rho, Y)
+    # Combine
+    udot = np.append(wdot, Q_TV)
+    return udot, Tv
 
 def get_Tv_from_e_vee(e_vee_in, Y, Tv_guess=300.):
     '''Use Newton iterations to invert the energy fit.'''
@@ -198,6 +233,22 @@ def get_e_vee_from_Tv(Tv, Y):
 
     return e_vee[0]
 
+def get_e_s_vee(Tv, ns):
+    # Load C library
+    c_lib = ctypes.CDLL('./generated/e_s_vee.so')
+    func = c_lib.compute_e_s_vee
+    # Set types
+    func.argtypes = [ctypes.c_double,
+            ctypes.c_void_p]
+    func.restype = None
+
+    e_s_vee = np.empty(ns)
+    func(
+            Tv,
+            e_s_vee.ctypes.data)
+
+    return e_s_vee
+
 def get_cv_vee_from_Tv(Tv, Y):
     # Load C library
     c_lib = ctypes.CDLL('./generated/cv_vee.so')
@@ -266,6 +317,25 @@ def get_wdot(T, Tv, rho):
             rho.ctypes.data,
             wdot.ctypes.data)
     return wdot
+
+def get_Q_TV(T, Tv, rho, Y):
+
+    # Load C library
+    c_lib = ctypes.CDLL('./generated/Q_TV.so')
+    func = c_lib.compute_Q_TV
+    # Set types
+    func.argtypes = [ctypes.c_double, ctypes.c_double, ctypes.c_void_p,
+            ctypes.c_void_p, ctypes.c_void_p]
+    func.restype = None
+
+    Q_TV = np.empty(1)
+    func(
+            T,
+            Tv,
+            rho.ctypes.data,
+            Y.ctypes.data,
+            Q_TV.ctypes.data)
+    return Q_TV[0]
 
 def RK4(f, n_t, t_final, u_0, guess, args=()):
 

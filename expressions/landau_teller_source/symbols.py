@@ -6,9 +6,16 @@ from sympy import symbols, IndexedBase
 # Species index and total number of species
 s = symbols('s')
 ns = symbols('ns')
+# Heavies index and total number of heavies
+r = symbols('r')
+nh = symbols('nh')
+# Total number of vibrating species
+nv = symbols('nv')
 
-# Temperature
+# TR Temperature
 T = symbols('T', real=True, positive=True)
+# VEE Temperature
+Tv = symbols('Tv', real=True, positive=True)
 # Total density
 rho_t = symbols('rho_t')
 # Partial densities
@@ -58,3 +65,12 @@ n = symbols('n')
 # Vibrational relaxation time of species s, with the Park 93 high temperature
 # correction
 tau_s = IndexedBase('tau_s')
+tau = IndexedBase('tau')
+
+# VEE energy
+e_s_vee = IndexedBase('e_s_vee')
+# VEE energy evaluated at the TR temperature
+e_s_vee_star = IndexedBase('e_s_vee_star')
+
+# LT source term
+Q_TV_s = IndexedBase('Q_TV_s')

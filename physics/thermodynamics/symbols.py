@@ -7,8 +7,10 @@ from sympy import symbols, IndexedBase
 s = symbols('s')
 ns = symbols('ns')
 
-# Temperature
+# TR Temperature
 T = symbols('T', real=True, positive=True)
+# VEE Temperature
+Tv = symbols('Tv', real=True, positive=True)
 # Mass fractions
 Y = IndexedBase('Y', shape=(ns,))
 
