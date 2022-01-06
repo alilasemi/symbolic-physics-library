@@ -5,8 +5,17 @@ import expressions.species_energies_and_cv.main as thermo_expression
 import expressions.mass_production.main as chem_expression
 import expressions.landau_teller_source.main as temp_relax_expression
 from core.source_code import SourceCode
+from physics.kinetics.kinetics_data import KineticsData
 
 def main():
+
+    # Paths
+    # TODO: Unhardcode
+    kinetics_file_path = '/home/ali/projects/symbolic-physics-library/examples/nitrogen/N2-ion_park90.chem'
+
+    # Kinetics data
+    kinetics_data = KineticsData(kinetics_file_path)
+    breakpoint()
 
     # State equation
     state_expression.create()
@@ -14,6 +23,7 @@ def main():
     physics_file_name = 'physics.pkl'
     with open(physics_file_name, "rb") as physics_file:
         p = pickle.load(physics_file)
+
 
     # Thermodynamics
     thermo_expression.create()
