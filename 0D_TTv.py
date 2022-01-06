@@ -85,11 +85,11 @@ def main():
     for j in range(5):
         plt.plot(T - Tv, Q_TV[j], lw=3, label=f'T = {int(T_const[j])} K')
     plt.xlabel('$T - T_v$ (K)', fontsize=20)
-    plt.ylabel('$Q_{T-V}$ (W/M$^3$)', fontsize=20)
+    plt.ylabel('$Q_{T-V}$ (W/m$^3$)', fontsize=20)
     plt.tick_params(labelsize=20)
     plt.grid(linestyle='--')
     plt.legend(fontsize=14, ncol=1)#, loc='upper right')
-    plt.savefig(f'figs/0D_Q_LT.png', bbox_inches='tight')
+    plt.savefig(f'figs/0D_Q_LT.pdf', bbox_inches='tight')
     plt.show()
 
     # Plot T

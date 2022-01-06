@@ -66,6 +66,7 @@ def create():
         cv_s[s].expression = exprs.create_piecewise_expression_from_fit(cv_s[s], syms.T, syms.a, thermochem_data[sp].a, thermochem_data[sp].temperatures)
         # Formation energy
         e_s_0[s] = e_s[s].expression.subs(syms.T, thermochem_data.T_0)
+        breakpoint()
     # Mixture averaged values
     e = Expression(exprs.e_expr)
     e.plug_in(syms.ns, ns).doit()

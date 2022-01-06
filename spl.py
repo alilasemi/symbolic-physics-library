@@ -17,6 +17,7 @@ def main():
 
     # Thermodynamics
     thermo_expression.create()
+    breakpoint()
 
     physics_file_name = 'physics.pkl'
     with open(physics_file_name, "rb") as physics_file:

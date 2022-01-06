@@ -8,6 +8,7 @@ import ctypes
 from chemical_mechanism import ChemicalMechanism
 
 def main():
+    breakpoint()
 
     thermo_file_name = 'N2_ions.dat'
     chem = ChemicalMechanism(thermo_file_name)
