@@ -13,73 +13,29 @@ import physics.chemistry.symbols as syms
 import physics.thermodynamics.symbols as thermo_syms
 
 
-def create():
+def create(kinetics_data):
 
     physics_file_name = 'physics.pkl'
+
+    # Unpack
+    species = kinetics_data.species
+    ns = kinetics_data.ns
+    nr = kinetics_data.nr
+    alpha = kinetics_data.alpha
+    beta = kinetics_data.beta
+    epsilon = kinetics_data.epsilon
+    nu = kinetics_data.nu
+    three_body = kinetics_data.three_body
+    C = kinetics_data.C
+    eta = kinetics_data.eta
+    theta = kinetics_data.theta
 
     # -- Collect the necessary data -- #
 
     thermochem_data = ThermochemicalData('NASA9')
     # TODO: Un-hardcode
-    species = ['N2', 'N2+', 'N', 'N+', 'e-']
-    ns = len(species)
     thermochem_data.data = {sp : thermochem_data[sp] for sp in species}
     M = np.array([thermochem_data[sp].M for sp in species])
-
-    # TODO: Read these from DPLR chem files directly
-    # Reactant stoichiometric coefficients
-    alpha = np.array([
-            [1, 0, 0],
-            [0, 0, 0],
-            [0, 1, 2],
-            [0, 0, 0],
-            [0, 1, 0],
-            ])
-    # Product stoichiometric coefficients
-    beta = np.array([
-            [0, 0, 0],
-            [0, 0, 1],
-            [2, 0, 0],
-            [0, 1, 0],
-            [0, 2, 1],
-            ])
-    # Net stoichiometric coefficient
-    nu = np.sum(beta - alpha, axis=0)
-    nr = alpha.shape[1]
-
-    # Arrhenius parameters
-    C = np.array([
-        7.000e+18,
-        2.500e+31,
-        4.400e+04,
-        ])
-    eta = np.array([
-        -1.60e+00,
-        -3.82e+00,
-         1.50e+00,
-         ])
-    theta = np.array([
-        1.1320e+05,
-        1.6860e+05,
-        6.7500e+04,
-        ])
-
-    # Whether or not the third body collision partner, M, is present
-    has_m = [True, False, False]
-
-    # The units on C need to be in SI units:
-    #     m^(3 a) * mol^(1 - a) * s,
-    # where a is the sum of reactant stoichimetric coeffs (including M).
-    # The DPLR input file assumes kilomoles, so this needs to be converted.
-    kmol_to_mol = 1e3
-    a = np.sum(alpha, axis=0) + has_m
-    conversion = kmol_to_mol ** (1 - a)
-    C /= conversion
-
-    epsilon = [np.ones(ns, dtype=int) for r in range(nr)]
-    # Make sure units equal when doing this normalization!
-    epsilon[0] = np.array(
-            [7.00e+18, 7.00e+18, 3.00e+19, 3.00e+19, 3.00e+21])/7.000e+18
 
     # -- Plug in -- #
 
@@ -94,7 +50,7 @@ def create():
     # Reactions
     for r in range(nr):
         # kf
-        if has_m[r]:
+        if three_body[r]:
             kf = Expression(exprs.kf_three_body_expr)
             kf.plug_in(syms.kf, exprs.kf_arrhenius_expr)
             kf.plug_in(syms.ns, ns).doit()
