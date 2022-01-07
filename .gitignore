@@ -4,3 +4,5 @@
 __pycache__
 # Ignore downloaded data
 /physics/thermodynamics/data/*
+# Ignore intermediate save files
+*.pkl
