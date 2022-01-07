@@ -52,8 +52,12 @@ def create(species):
     cv.plug_in(syms.ns, ns).doit()
     cv.plug_in(syms.cv_s, cv_s)
 
+    # energy and cv will be bundled together, to allow common subexpression
+    # elimination
+    e_and_cv = [e, cv]
+
     # Save to file
     with open(physics_file_name, "wb") as physics_file:
-        exprs_to_write = e, cv, e_s, cv_s
+        exprs_to_write = e, cv, e_and_cv, e_s, cv_s
         pickle.dump(exprs_to_write, physics_file,
                 protocol=pickle.HIGHEST_PROTOCOL)

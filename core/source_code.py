@@ -10,6 +10,16 @@ class SourceCode:
     def __init__(self, file_name, marker, inputs_line, expressions, pointer=False):
         self.file_name = file_name + '.c'
         self.marker = marker
+
+        # If there are a list of names, connect them all for a name
+        if isinstance(self.marker, list):
+            self.name = ''
+            for marker in self.marker:
+                self.name += marker + '_and_'
+            self.name = self.name[:-5]
+        else:
+            self.name = self.marker
+
         self.inputs_line = inputs_line
         self.expressions = expressions
         self.pointer = pointer
@@ -34,9 +44,9 @@ class SourceCode:
         self.text = []
         self.text.append('#include <math.h>\n')
         self.text.append('\n')
-        self.text.append(f'void compute_{self.marker}({self.inputs_line}) {{\n')
+        self.text.append(f'void compute_{self.name}({self.inputs_line}) {{\n')
         self.text.append('\n')
-        self.text.append(f'#pragma {self.marker}')
+        self.text.append(f'#pragma {self.name}')
         self.text.append('\n')
         self.text.append('}')
 
@@ -44,7 +54,7 @@ class SourceCode:
         # Loop over lines in source code
         for i, line in enumerate(self.text):
             # If this is the marker for wdot
-            if line.startswith(f'#pragma {self.marker}'):
+            if line.startswith(f'#pragma {self.name}'):
                 # Remove marker
                 self.text.pop(i)
                 # Loop over expressions
@@ -55,6 +65,7 @@ class SourceCode:
                         # Generate code
                         code = self.code(self.expressions[j], j)
                         text.append(self.format(code))
+                        text.append('\n')
                 # If it doesn't have elements, then just generate the one
                 # expression
                 except TypeError:
@@ -68,8 +79,14 @@ class SourceCode:
     def code(self, expr, idx=None):
         prefix = '*' if self.pointer else ''
         suffix = ';'
-        indexing = f'[{idx}]' if idx is not None else ''
-        return (prefix + self.marker + indexing + ' = ' +
+        # If there are multiple markers, use those as the variable name, instead
+        # of treating it as an array
+        if isinstance(self.marker, list):
+            variable_name = self.marker[idx]
+        else:
+            indexing = f'[{idx}]' if idx is not None else ''
+            variable_name = self.marker + indexing
+        return (prefix + variable_name + ' = ' +
                 sp.ccode(expr.expression, contract=False) + suffix)
 
     def format(self, text, indent=1):

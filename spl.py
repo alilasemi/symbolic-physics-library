@@ -40,10 +40,9 @@ def main():
     with open(physics_file_name, "rb") as physics_file:
         # TODO
         #e, e_tr, e_tr_from_e, e_vee, _, cv_tr, cv_vee, _, _, e_s_vee, *_ = pickle.load(physics_file)
-        e, cv, e_s, cv_s = pickle.load(physics_file)
+        _, _, e_and_cv, e_s, cv_s = pickle.load(physics_file)
 
-    SourceCode('generated/e', 'e', 'const double T, const double* __restrict__ Y, double* __restrict__ e', e, pointer=True)
-    SourceCode('generated/cv', 'cv', 'const double T, const double* __restrict__ Y, double* __restrict__ cv', cv, pointer=True)
+    SourceCode('generated/e_and_cv', ['e', 'cv'], 'const double T, const double* __restrict__ Y, double* __restrict__ e, double* __restrict__ cv', e_and_cv, pointer=True)
     SourceCode('generated/e_s', 'e_s', 'const double T, double* __restrict__ e_s', e_s)
     SourceCode('generated/cv_s', 'cv_s', 'const double T, double* __restrict__ cv_s', cv_s)
 
