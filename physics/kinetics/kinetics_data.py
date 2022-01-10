@@ -114,7 +114,7 @@ class KineticsData():
                     kmol_to_mol = 1e3
                     a = np.sum(self.alpha, axis=0) + self.three_body
                     conversion = kmol_to_mol ** (1 - a)
-                    self.C /= conversion
+                    self.C *= conversion
 
                 # Read the next line
                 line = kinetics_file.readline()

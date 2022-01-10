@@ -46,6 +46,15 @@ def main():
     SourceCode('generated/e_s', 'e_s', 'const double T, double* __restrict__ e_s', e_s)
     SourceCode('generated/cv_s', 'cv_s', 'const double T, double* __restrict__ cv_s', cv_s)
 
+    # Chemistry
+    chem_expression.create(kinetics_data)
+
+    physics_file_name = 'physics.pkl'
+    with open(physics_file_name, "rb") as physics_file:
+        wdot = pickle.load(physics_file)
+
+    SourceCode('generated/wdot', 'wdot', 'const double T, const double* __restrict__ rho, double* __restrict__ wdot', wdot)
+
     breakpoint()
 
     #SourceCode('generated/e', 'e', 'const double T, const double* __restrict__ Y, double* __restrict__ e', e, pointer=True)
@@ -65,15 +74,6 @@ def main():
 
     SourceCode('generated/Q_TV', 'Q_TV', 'const double T, const double Tv, const double* __restrict__ rho, const double* __restrict__ Y, double* __restrict__ Q_TV', Q_TV, pointer=True)
 
-    # Chemistry
-    chem_expression.create(kinetics_data)
-
-    physics_file_name = 'physics.pkl'
-    with open(physics_file_name, "rb") as physics_file:
-        wdot = pickle.load(physics_file)
-    breakpoint()
-
-    SourceCode('generated/wdot', 'wdot', 'const double T, const double* __restrict__ rho, double* __restrict__ wdot', wdot)
 
 
 if __name__ == "__main__":

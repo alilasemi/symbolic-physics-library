@@ -7,41 +7,42 @@ import ctypes
 import scipy
 import h5py
 import os
-
-from chemical_mechanism import ChemicalMechanism
+import sys
+sys.path.append('../..')
 
 def main():
 
     dglegion_solution_dir = '/home/ali/projects/cfd_cases/0d_nitrogen/solutions/'
-    thermo_file_name = 'N2_ions.dat'
-    chem = ChemicalMechanism(thermo_file_name)
-    ns = chem.ns
-    nr = chem.nr
-    M = chem.M
+    # TODO: Unhardcode
+    ns = 5
+    nr = 3
+    M = np.array([.028, .028, .014, .014, 5.486e-7])
 
     # Read data from DPLR
-    dplr_state = np.loadtxt('reference_data/kinetics/reactor_n2_tceq.state.dat',
-            skiprows=2)
-    dplr_t = dplr_state[:, 0]
-    nt = dplr_t.shape[0]
-    dplr_T = dplr_state[:, -4]
-    dplr_rho_t = dplr_state[:, -3]
-    dplr_X = dplr_state[:, 1:ns+1] / dplr_state[:, [-2]] # n_s divided by n_tot
-    dplr_Mbar = np.dot(dplr_X, M)
-    # Convert mole fraction to mass fraction
-    dplr_Y = np.empty_like(dplr_X)
-    for i in range(dplr_state.shape[0]):
-        dplr_Y[i] = dplr_X[i] * M / dplr_Mbar[i]
-    # Convert mass fraction to partial density
-    dplr_rho = dplr_Y * dplr_rho_t[:, np.newaxis]
-    dplr_source = np.loadtxt('reference_data/kinetics/reactor_n2_tceq.source.dat',
-            skiprows=2)[:, 1:ns+1] * 1e6 # DPLR gives kg/cm^3/s, convert to m
+    #dplr_state = np.loadtxt('reference_data/kinetics/reactor_n2_tceq.state.dat',
+    #        skiprows=2)
+    #dplr_t = dplr_state[:, 0]
+    #nt = dplr_t.shape[0]
+    #dplr_T = dplr_state[:, -4]
+    #dplr_rho_t = dplr_state[:, -3]
+    #dplr_X = dplr_state[:, 1:ns+1] / dplr_state[:, [-2]] # n_s divided by n_tot
+    #dplr_Mbar = np.dot(dplr_X, M)
+    ## Convert mole fraction to mass fraction
+    #dplr_Y = np.empty_like(dplr_X)
+    #for i in range(dplr_state.shape[0]):
+    #    dplr_Y[i] = dplr_X[i] * M / dplr_Mbar[i]
+    ## Convert mass fraction to partial density
+    #dplr_rho = dplr_Y * dplr_rho_t[:, np.newaxis]
+    #dplr_source = np.loadtxt('reference_data/kinetics/reactor_n2_tceq.source.dat',
+    #        skiprows=2)[:, 1:ns+1] * 1e6 # DPLR gives kg/cm^3/s, convert to m
 
+    # Run 0D simulation using Python ODE integrators
     n_t = 2000
-    t_final = nt * 1e-7
-    rho_0 = dplr_rho[0]
-    T_0 = dplr_T[0]
-    e_in, _ = get_e_from_T(dplr_T[0], dplr_Y[0])
+    t_final = n_t * 1e-7
+    rho_0 = np.array([2.5e-4, 0, 0, 0, 0])
+    T_0 = 24000
+    Y_0 = np.array([1., 0, 0, 0, 0])
+    e_in, _ = get_e_from_T(T_0, Y_0)
     t, rho = RK4(RHS, n_t, t_final, rho_0, T_0, args=(e_in,))
 
     # Get total density
@@ -54,44 +55,46 @@ def main():
     for i in range(t.size):
         T[i] = get_T_from_e(e_in, Y[i], T_guess)
         T_guess = T[i]
+    breakpoint()
 
-    # -- Read data from DG-Legion code -- #
-    # Get list of all files in solution directory
-    _, _, filenames = next(os.walk(dglegion_solution_dir))
-    # Keep only the HDF5 files
-    filenames = [name for name in filenames if name.endswith('.h5')]
-    # Prepend the directory path
-    filenames = [dglegion_solution_dir + name for name in filenames]
-    # Iteration number of each file
-    iters = [name.split('_000.h5')[0].split('_')[-1] for name in filenames]
-    # Sort filenames by iteration number
-    filenames = [name for _, name in sorted(zip(iters, filenames))]
-    # Loop over each solution file
-    dgl_t = np.empty(len(filenames))
-    dgl_T = np.empty_like(dgl_t)
-    dgl_Y = np.empty((dgl_t.size, ns))
-    for i, filename in enumerate(filenames):
-        # Open file
-        h5file = h5py.File(filename, 'r')
-        # Read time
-        dgl_t[i] = h5file['Time'][()][0]
-        # Read temperature
-        dgl_T[i] = h5file['T'][()][0, 0]
-        # Read mass fractions of conserved variables
-        for s in range(ns - 1):
-            dgl_Y[i, s] = h5file[f'Y{s}'][()][0, 0]
-        # Compute mass fraction of final variable
-        dgl_Y[i, -1] = 1 - np.sum(dgl_Y[i, :-1])
+    ## -- Read data from DG-Legion code -- #
+    ## Get list of all files in solution directory
+    #_, _, filenames = next(os.walk(dglegion_solution_dir))
+    ## Keep only the HDF5 files
+    #filenames = [name for name in filenames if name.endswith('.h5')]
+    ## Prepend the directory path
+    #filenames = [dglegion_solution_dir + name for name in filenames]
+    ## Iteration number of each file
+    #iters = [name.split('_000.h5')[0].split('_')[-1] for name in filenames]
+    ## Sort filenames by iteration number
+    #filenames = [name for _, name in sorted(zip(iters, filenames))]
+    ## Loop over each solution file
+    #dgl_t = np.empty(len(filenames))
+    #dgl_T = np.empty_like(dgl_t)
+    #dgl_Y = np.empty((dgl_t.size, ns))
+    #for i, filename in enumerate(filenames):
+    #    # Open file
+    #    h5file = h5py.File(filename, 'r')
+    #    # Read time
+    #    dgl_t[i] = h5file['Time'][()][0]
+    #    # Read temperature
+    #    dgl_T[i] = h5file['T'][()][0, 0]
+    #    # Read mass fractions of conserved variables
+    #    for s in range(ns - 1):
+    #        dgl_Y[i, s] = h5file[f'Y{s}'][()][0, 0]
+    #    # Compute mass fraction of final variable
+    #    dgl_Y[i, -1] = 1 - np.sum(dgl_Y[i, :-1])
 
     # Plot
     rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
     rc('text', usetex=True)
 
+    figsize = 7
     # Plot T
-    fig = plt.figure(figsize=(7,7))
-    plt.plot(dplr_t, dplr_T, lw=3, label='DPLR')
+    fig = plt.figure(figsize=(figsize, figsize))
+    #plt.plot(dplr_t, dplr_T, lw=3, label='DPLR')
     plt.plot(t, T, lw=3, label='Python')
-    plt.plot(dgl_t, dgl_T, lw=3, label='DG-Legion')
+    #plt.plot(dgl_t, dgl_T, lw=3, label='DG-Legion')
     plt.xlabel('$t$ (s)', fontsize=20)
     plt.ylabel('$T$ (K)', fontsize=20)
     plt.tick_params(labelsize=20)
@@ -101,11 +104,11 @@ def main():
 
     # Plot Y
     labels = ['N2', 'N2+', 'N', 'N+', 'e-']
-    for i in range(chem.ns):
-        fig = plt.figure(figsize=(7,7))
-        plt.plot(dplr_t, dplr_Y[:, i], lw=3, label=labels[i] + ', DPLR')
+    for i in range(ns):
+        fig = plt.figure(figsize=(figsize, figsize))
+        #plt.plot(dplr_t, dplr_Y[:, i], lw=3, label=labels[i] + ', DPLR')
         plt.plot(t, Y[:, i], lw=3, label=labels[i] + ', Python')
-        plt.plot(dgl_t, dgl_Y[:, i], lw=4, label=labels[i] + ', DG-Legion')
+        #plt.plot(dgl_t, dgl_Y[:, i], lw=4, label=labels[i] + ', DG-Legion')
         plt.xlabel('$t$ (s)', fontsize=20)
         plt.ylabel('$Y$', fontsize=20)
         plt.tick_params(labelsize=20)
@@ -159,16 +162,16 @@ def get_T_from_e(e_in, Y, T_guess=300.):
 
 def get_e_from_T(T, Y):
     # Load C library
-    c_lib = ctypes.CDLL('./energy.so')
-    get_e_and_cv = c_lib.get_e_and_cv
+    c_lib = ctypes.CDLL('./generated/e_and_cv.so')
+    compute_e_and_cv = c_lib.compute_e_and_cv
     # Set types
-    get_e_and_cv.argtypes = [ctypes.c_double, ctypes.c_void_p,
+    compute_e_and_cv.argtypes = [ctypes.c_double, ctypes.c_void_p,
             ctypes.c_void_p, ctypes.c_void_p]
-    get_e_and_cv.restype = None
+    compute_e_and_cv.restype = None
 
     e = np.empty(1)
     cv = np.empty(1)
-    get_e_and_cv(
+    compute_e_and_cv(
             T,
             Y.ctypes.data,
             e.ctypes.data,
@@ -179,15 +182,15 @@ def get_wdot(T, rho):
     '''Compute the mass production rate.'''
 
     # Load C library
-    c_lib = ctypes.CDLL('./rxn_rates.so')
-    eval_spec_rates = c_lib.eval_spec_rates
+    c_lib = ctypes.CDLL('./generated/wdot.so')
+    compute_wdot = c_lib.compute_wdot
     # Set types
-    eval_spec_rates.argtypes = [ctypes.c_double, ctypes.c_void_p,
+    compute_wdot.argtypes = [ctypes.c_double, ctypes.c_void_p,
             ctypes.c_void_p]
-    eval_spec_rates.restype = None
+    compute_wdot.restype = None
 
     wdot = np.empty(rho.size)
-    c_lib.eval_spec_rates(
+    c_lib.compute_wdot(
             T,
             rho.ctypes.data,
             wdot.ctypes.data)
