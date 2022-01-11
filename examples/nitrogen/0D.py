@@ -16,25 +16,8 @@ def main():
     # TODO: Unhardcode
     ns = 5
     nr = 3
-    M = np.array([.028, .028, .014, .014, 5.486e-7])
-
-    # Read data from DPLR
-    #dplr_state = np.loadtxt('reference_data/kinetics/reactor_n2_tceq.state.dat',
-    #        skiprows=2)
-    #dplr_t = dplr_state[:, 0]
-    #nt = dplr_t.shape[0]
-    #dplr_T = dplr_state[:, -4]
-    #dplr_rho_t = dplr_state[:, -3]
-    #dplr_X = dplr_state[:, 1:ns+1] / dplr_state[:, [-2]] # n_s divided by n_tot
-    #dplr_Mbar = np.dot(dplr_X, M)
-    ## Convert mole fraction to mass fraction
-    #dplr_Y = np.empty_like(dplr_X)
-    #for i in range(dplr_state.shape[0]):
-    #    dplr_Y[i] = dplr_X[i] * M / dplr_Mbar[i]
-    ## Convert mass fraction to partial density
-    #dplr_rho = dplr_Y * dplr_rho_t[:, np.newaxis]
-    #dplr_source = np.loadtxt('reference_data/kinetics/reactor_n2_tceq.source.dat',
-    #        skiprows=2)[:, 1:ns+1] * 1e6 # DPLR gives kg/cm^3/s, convert to m
+    M_N = .014007
+    M = np.array([2*M_N, 2*M_N, M_N, M_N, 5.48579909e-7])
 
     # Run 0D simulation using Python ODE integrators
     n_t = 2000
@@ -42,6 +25,7 @@ def main():
     rho_0 = np.array([2.5e-4, 0, 0, 0, 0])
     T_0 = 24000
     Y_0 = np.array([1., 0, 0, 0, 0])
+    p_0 = 2.5e-4 * 296.8 * T_0
     e_in, _ = get_e_from_T(T_0, Y_0)
     t, rho = RK4(RHS, n_t, t_final, rho_0, T_0, args=(e_in,))
 
@@ -55,35 +39,29 @@ def main():
     for i in range(t.size):
         T[i] = get_T_from_e(e_in, Y[i], T_guess)
         T_guess = T[i]
-    breakpoint()
 
-    ## -- Read data from DG-Legion code -- #
-    ## Get list of all files in solution directory
-    #_, _, filenames = next(os.walk(dglegion_solution_dir))
-    ## Keep only the HDF5 files
-    #filenames = [name for name in filenames if name.endswith('.h5')]
-    ## Prepend the directory path
-    #filenames = [dglegion_solution_dir + name for name in filenames]
-    ## Iteration number of each file
-    #iters = [name.split('_000.h5')[0].split('_')[-1] for name in filenames]
-    ## Sort filenames by iteration number
-    #filenames = [name for _, name in sorted(zip(iters, filenames))]
-    ## Loop over each solution file
-    #dgl_t = np.empty(len(filenames))
-    #dgl_T = np.empty_like(dgl_t)
-    #dgl_Y = np.empty((dgl_t.size, ns))
-    #for i, filename in enumerate(filenames):
-    #    # Open file
-    #    h5file = h5py.File(filename, 'r')
-    #    # Read time
-    #    dgl_t[i] = h5file['Time'][()][0]
-    #    # Read temperature
-    #    dgl_T[i] = h5file['T'][()][0, 0]
-    #    # Read mass fractions of conserved variables
-    #    for s in range(ns - 1):
-    #        dgl_Y[i, s] = h5file[f'Y{s}'][()][0, 0]
-    #    # Compute mass fraction of final variable
-    #    dgl_Y[i, -1] = 1 - np.sum(dgl_Y[i, :-1])
+    # Create Cantera solution
+    gas = ct.Solution('nitrogen.cti')
+    # Set initial state
+    gas.TPY = (T_0, p_0, Y_0)
+    # Create 0D simulation
+    reactor = ct.IdealGasReactor(gas)
+    sim = ct.ReactorNet([reactor])
+    sim.verbose = True
+    # limit advance when temperature difference is exceeded
+    delta_T_max = 20.
+    reactor.set_advance_limit('temperature', delta_T_max)
+    dt_max = 1.e-7
+    t_end = 2000 * dt_max
+    states = ct.SolutionArray(gas, extra=['t'])
+
+    #print('{:10s} {:10s} {:10s} {:14s}'.format(
+    #    't [s]', 'T [K]', 'P [Pa]', 'u [J/kg]'))
+    while sim.time < t_end:
+        sim.advance(sim.time + dt_max)
+        states.append(reactor.thermo.state, t=sim.time)
+        #print('{:10.3e} {:10.3f} {:10.3f} {:14.6f}'.format(
+        #        sim.time, reactor.T, reactor.thermo.P, reactor.thermo.u))
 
     # Plot
     rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
@@ -92,9 +70,8 @@ def main():
     figsize = 7
     # Plot T
     fig = plt.figure(figsize=(figsize, figsize))
-    #plt.plot(dplr_t, dplr_T, lw=3, label='DPLR')
-    plt.plot(t, T, lw=3, label='Python')
-    #plt.plot(dgl_t, dgl_T, lw=3, label='DG-Legion')
+    plt.plot(states.t, states.T, lw=3, label='Cantera')
+    plt.plot(t, T, lw=3, label='Sympy')
     plt.xlabel('$t$ (s)', fontsize=20)
     plt.ylabel('$T$ (K)', fontsize=20)
     plt.tick_params(labelsize=20)
@@ -106,9 +83,8 @@ def main():
     labels = ['N2', 'N2+', 'N', 'N+', 'e-']
     for i in range(ns):
         fig = plt.figure(figsize=(figsize, figsize))
-        #plt.plot(dplr_t, dplr_Y[:, i], lw=3, label=labels[i] + ', DPLR')
-        plt.plot(t, Y[:, i], lw=3, label=labels[i] + ', Python')
-        #plt.plot(dgl_t, dgl_Y[:, i], lw=4, label=labels[i] + ', DG-Legion')
+        plt.plot(states.t, states.Y[:, i], lw=3, label=labels[i] + ', Cantera')
+        plt.plot(t, Y[:, i], lw=3, label=labels[i] + ', Sympy')
         plt.xlabel('$t$ (s)', fontsize=20)
         plt.ylabel('$Y$', fontsize=20)
         plt.tick_params(labelsize=20)
